@@ -8,6 +8,7 @@ interface LoginCardProps {
   isLoading: boolean;
   hasError: boolean;
   hasConfigError?: boolean;
+  hasNotAuthorised?: boolean;
   onSignIn: () => void;
 }
 
@@ -15,6 +16,7 @@ export default function LoginCard({
   isLoading,
   hasError,
   hasConfigError,
+  hasNotAuthorised,
   onSignIn,
 }: LoginCardProps) {
   return (
@@ -63,6 +65,21 @@ export default function LoginCard({
               <div className="text-sm text-[#92400E]">
                 <p className="font-semibold">Server configuration error</p>
                 <p className="mt-1">Authentication is not properly configured. Please contact your administrator.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Not authorised error banner */}
+        {hasNotAuthorised && !isLoading && (
+          <div className="mt-4 rounded-lg border-2 border-[#FCA5A5] bg-[#FEF2F2] p-4">
+            <div className="flex items-start gap-3">
+              <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#DC2626]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+              <div className="text-sm text-[#991B1B]">
+                <p className="font-semibold">Access not authorised</p>
+                <p className="mt-1">Your account is not authorised for Intel Dash. Please contact your administrator to request access.</p>
               </div>
             </div>
           </div>

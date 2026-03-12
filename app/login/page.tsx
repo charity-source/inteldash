@@ -15,6 +15,7 @@ function LoginContent() {
   const errorParam = searchParams.get("error");
   const hasError = errorParam === "AccessDenied";
   const hasConfigError = errorParam === "Configuration";
+  const hasNotAuthorised = errorParam === "NotAuthorised";
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -47,6 +48,7 @@ function LoginContent() {
           isLoading={isLoading}
           hasError={hasError}
           hasConfigError={hasConfigError}
+          hasNotAuthorised={hasNotAuthorised}
           onSignIn={handleSignIn}
         />
       </div>
