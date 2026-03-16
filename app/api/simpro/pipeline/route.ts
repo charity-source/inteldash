@@ -11,7 +11,7 @@ interface SimproListItem {
 }
 
 // Active stages — adjust if simPRO uses different names
-const ACTIVE_JOB_STAGES = ["Progress", "Pending", "Estimated"];
+const ACTIVE_JOB_STAGES = ["Progress", "Pending"];
 const ACTIVE_QUOTE_STAGES = ["Pending", "Approved"];
 
 function groupByStage(items: SimproListItem[]) {
