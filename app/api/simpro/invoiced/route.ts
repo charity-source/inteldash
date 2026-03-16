@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { simproFetch } from "@/lib/simpro";
 
+export const dynamic = 'force-dynamic';
 interface InvoiceListItem {
   ID: number;
   Type: string;
