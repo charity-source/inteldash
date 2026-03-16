@@ -12,7 +12,7 @@ interface SimproListItem {
 
 // Active stages — adjust if simPRO uses different names
 const ACTIVE_JOB_STAGES = ["Progress", "Pending"];
-const ACTIVE_QUOTE_STAGES = ["Pending", "Approved"];
+const ACTIVE_QUOTE_STAGES = ["InProgress", "Approved"];
 
 function groupByStage(items: SimproListItem[]) {
   const map: Record<string, { count: number; value: number; items: { ID: number; Name: string; value: number }[] }> = {};
