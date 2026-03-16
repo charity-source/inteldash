@@ -23,10 +23,10 @@ interface ApiResponse {
   };
   grossMargin: {
     jobsAnalysed: number;
-    avgGrossMarginActual: number;
-    avgGrossMarginEstimate: number;
-    totalGrossProfitLoss: number;
-    totalInvoicedOnJobs: number;
+    avgGrossMarginActual: number | null;
+    avgGrossMarginEstimate: number | null;
+    totalGrossProfitLoss: number | null;
+    totalInvoicedOnJobs: number | null;
   };
 }
 
@@ -37,19 +37,24 @@ function fmtDollar(v: number): string {
   return "$" + v.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
-function fmtDollarFull(v: number): string {
-  return "$" + v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+function safeDollar(v: number | null): string {
+  return v != null ? fmtDollar(v) : "—";
 }
 
 function fmtPct(v: number): string {
   return v.toFixed(1) + "%";
 }
 
+function safePct(v: number | null): string {
+  return v != null ? fmtPct(v) : "—";
+}
+
 // Type colors
 const TYPE_COLORS: Record<string, string> = {
   ProgressInvoice: "#3b82f6",
+  TaxInvoice: "#8b5cf6",
   FinalInvoice: "#10b981",
-  Deposit: "#8b5cf6",
+  Deposit: "#f59e0b",
   CreditNote: "#ef4444",
   Claim: "#f59e0b",
   Unknown: "#94a3b8",
@@ -60,7 +65,6 @@ function typeColor(t: string): string {
 }
 
 function typeLabel(t: string): string {
-  // Convert camelCase to readable
   return t.replace(/([A-Z])/g, " $1").trim();
 }
 
@@ -268,6 +272,9 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
   const collectionRate = summary.totalInvoiced > 0
     ? ((summary.totalPaid / summary.totalInvoiced) * 100)
     : 0;
+  const hasMarginData = grossMargin.jobsAnalysed > 0;
+  const actualMargin = grossMargin.avgGrossMarginActual ?? 0;
+  const estimateMargin = grossMargin.avgGrossMarginEstimate ?? 0;
 
   return (
     <>
@@ -329,7 +336,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
             <div className="text-center">
               <div className="text-[0.72rem] text-slate-400 font-medium mb-0.5">Avg Margin (Actual)</div>
               <div className="text-[1.15rem] font-bold text-emerald-400">
-                {grossMargin.jobsAnalysed > 0 ? fmtPct(grossMargin.avgGrossMarginActual) : "—"}
+                {hasMarginData ? safePct(grossMargin.avgGrossMarginActual) : "—"}
               </div>
             </div>
           </div>
@@ -407,21 +414,21 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
               <div className="w-9 h-9 rounded-[10px] flex items-center justify-center bg-emerald-50 text-emerald-600">
                 <MarginIcon />
               </div>
-              {grossMargin.jobsAnalysed > 0 && (
+              {hasMarginData && (
                 <span
                   className={`text-[0.72rem] font-semibold px-2 py-0.5 rounded-xl ${
-                    grossMargin.avgGrossMarginActual >= 35
+                    actualMargin >= 35
                       ? "bg-emerald-50 text-emerald-600"
                       : "bg-red-50 text-red-600"
                   }`}
                 >
-                  {grossMargin.avgGrossMarginActual >= 35 ? "Above" : "Below"} 35%
+                  {actualMargin >= 35 ? "Above" : "Below"} 35%
                 </span>
               )}
             </div>
             <div className="text-[0.78rem] font-semibold text-slate-500 uppercase tracking-wide mb-1">Avg Gross Margin</div>
             <div className="text-[1.6rem] font-extrabold text-slate-800 leading-none">
-              {grossMargin.jobsAnalysed > 0 ? fmtPct(grossMargin.avgGrossMarginActual) : "—"}
+              {hasMarginData ? safePct(grossMargin.avgGrossMarginActual) : "—"}
             </div>
             <div className="text-[0.78rem] text-slate-400 mt-1 font-medium">
               {grossMargin.jobsAnalysed} jobs analysed
@@ -430,25 +437,25 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
         </div>
 
         {/* GROSS MARGIN DETAIL CARDS */}
-        {grossMargin.jobsAnalysed > 0 && (
+        {hasMarginData && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white rounded-[10px] border border-gray-200 p-4 shadow-sm">
               <div className="text-[0.75rem] font-semibold text-slate-400 uppercase tracking-wide mb-1">Actual Margin</div>
-              <div className="text-[1.3rem] font-extrabold text-emerald-600">{fmtPct(grossMargin.avgGrossMarginActual)}</div>
+              <div className="text-[1.3rem] font-extrabold text-emerald-600">{safePct(grossMargin.avgGrossMarginActual)}</div>
             </div>
             <div className="bg-white rounded-[10px] border border-gray-200 p-4 shadow-sm">
               <div className="text-[0.75rem] font-semibold text-slate-400 uppercase tracking-wide mb-1">Estimated Margin</div>
-              <div className="text-[1.3rem] font-extrabold text-blue-600">{fmtPct(grossMargin.avgGrossMarginEstimate)}</div>
+              <div className="text-[1.3rem] font-extrabold text-blue-600">{safePct(grossMargin.avgGrossMarginEstimate)}</div>
             </div>
             <div className="bg-white rounded-[10px] border border-gray-200 p-4 shadow-sm">
               <div className="text-[0.75rem] font-semibold text-slate-400 uppercase tracking-wide mb-1">Gross Profit/Loss</div>
-              <div className={`text-[1.3rem] font-extrabold ${grossMargin.totalGrossProfitLoss >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                {fmtDollar(grossMargin.totalGrossProfitLoss)}
+              <div className={`text-[1.3rem] font-extrabold ${(grossMargin.totalGrossProfitLoss ?? 0) >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                {safeDollar(grossMargin.totalGrossProfitLoss)}
               </div>
             </div>
             <div className="bg-white rounded-[10px] border border-gray-200 p-4 shadow-sm">
               <div className="text-[0.75rem] font-semibold text-slate-400 uppercase tracking-wide mb-1">Invoiced on Jobs</div>
-              <div className="text-[1.3rem] font-extrabold text-slate-800">{fmtDollar(grossMargin.totalInvoicedOnJobs)}</div>
+              <div className="text-[1.3rem] font-extrabold text-slate-800">{safeDollar(grossMargin.totalInvoicedOnJobs)}</div>
             </div>
           </div>
         )}
@@ -480,7 +487,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
         </div>
 
         {/* MARGIN VS ESTIMATE COMPARISON */}
-        {grossMargin.jobsAnalysed > 0 && (
+        {hasMarginData && (
           <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5">
             <div className="text-[0.92rem] font-bold text-slate-800 mb-4">Margin: Actual vs Estimate</div>
             <div className="flex items-center gap-6">
@@ -488,14 +495,14 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[0.82rem] font-semibold text-slate-700">Actual</span>
-                  <span className="text-[0.85rem] font-bold text-emerald-600">{fmtPct(grossMargin.avgGrossMarginActual)}</span>
+                  <span className="text-[0.85rem] font-bold text-emerald-600">{safePct(grossMargin.avgGrossMarginActual)}</span>
                 </div>
                 <div className="h-8 bg-gray-100 rounded-md overflow-hidden relative">
                   <div
                     className="h-full rounded-md transition-all duration-500"
                     style={{
-                      width: Math.min((grossMargin.avgGrossMarginActual / 60) * 100, 100) + "%",
-                      background: grossMargin.avgGrossMarginActual >= 35 ? "#10b981" : "#ef4444",
+                      width: Math.min((actualMargin / 60) * 100, 100) + "%",
+                      background: actualMargin >= 35 ? "#10b981" : "#ef4444",
                       opacity: 0.85,
                     }}
                   />
@@ -510,13 +517,13 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[0.82rem] font-semibold text-slate-700">Estimate</span>
-                  <span className="text-[0.85rem] font-bold text-blue-600">{fmtPct(grossMargin.avgGrossMarginEstimate)}</span>
+                  <span className="text-[0.85rem] font-bold text-blue-600">{safePct(grossMargin.avgGrossMarginEstimate)}</span>
                 </div>
                 <div className="h-8 bg-gray-100 rounded-md overflow-hidden relative">
                   <div
                     className="h-full rounded-md transition-all duration-500"
                     style={{
-                      width: Math.min((grossMargin.avgGrossMarginEstimate / 60) * 100, 100) + "%",
+                      width: Math.min((estimateMargin / 60) * 100, 100) + "%",
                       background: "#3b82f6",
                       opacity: 0.85,
                     }}
@@ -533,7 +540,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
                 <span className="w-2 h-2 rounded-sm inline-block bg-purple-600" /> 35% target
               </span>
               <span className="text-[0.72rem] text-slate-400 font-medium">
-                Variance: {fmtPct(grossMargin.avgGrossMarginActual - grossMargin.avgGrossMarginEstimate)}
+                Variance: {fmtPct(actualMargin - estimateMargin)}
               </span>
             </div>
           </div>
