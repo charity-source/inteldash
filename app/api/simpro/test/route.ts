@@ -3,21 +3,28 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const [quoteList, invoiceList] = await Promise.all([
-      simproFetch('/quotes/', { 'pageSize': '1' }),
-      simproFetch('/invoices/', { 'pageSize': '1' }),
-    ]);
+    // Test list filtering and field selection
+    const tests = await Promise.all([
+      simproFetch('/jobs/', {
+        'pageSize': '2',
+        'columns': 'ID,Name,Stage,Status,DateIssued,Total',
+      }).catch((e: any) => ({ test: 'columns', error: e.message })),
 
-    const [quoteDetail, invoiceDetail] = await Promise.all([
-      simproFetch(`/quotes/${quoteList[0].ID}`).catch((e: any) => ({ error: e.message })),
-      simproFetch(`/invoices/${invoiceList[0].ID}`).catch((e: any) => ({ error: e.message })),
+      simproFetch('/jobs/', {
+        'pageSize': '2',
+        'DateIssued.after': '2026-03-01',
+      }).catch((e: any) => ({ test: 'date_filter', error: e.message })),
+
+      simproFetch('/jobs/', {
+        'pageSize': '2',
+        'Stage': 'Progress',
+      }).catch((e: any) => ({ test: 'stage_filter', error: e.message })),
     ]);
 
     return NextResponse.json({
-      quoteFields: Object.keys(quoteDetail),
-      quoteDetail,
-      invoiceFields: Object.keys(invoiceDetail),
-      invoiceDetail,
+      columns_test: tests[0],
+      date_filter_test: tests[1],
+      stage_filter_test: tests[2],
     });
   } catch (error: any) {
     return NextResponse.json({ status: 'error', message: error.message }, { status: 500 });
