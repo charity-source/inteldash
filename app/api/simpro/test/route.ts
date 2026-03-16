@@ -3,27 +3,20 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // Get one ID from each list
-    const [jobList, quoteList, invoiceList] = await Promise.all([
-      simproFetch('/jobs/', { 'pageSize': '1' }),
-      simproFetch('/quotes/', { 'pageSize': '1' }),
-      simproFetch('/invoices/', { 'pageSize': '1' }),
-    ]);
+    const jobList = await simproFetch('/jobs/', { 'pageSize': '1' });
+    const jobId = jobList[0].ID;
 
-    // Fetch full detail for each
-    const [jobDetail, quoteDetail, invoiceDetail] = await Promise.all([
-      simproFetch(`/jobs/${jobList[0].ID}/`).catch((e: any) => ({ error: e.message })),
-      simproFetch(`/quotes/${quoteList[0].ID}/`).catch((e: any) => ({ error: e.message })),
-      simproFetch(`/invoices/${invoiceList[0].ID}/`).catch((e: any) => ({ error: e.message })),
+    // Try different URL patterns
+    const attempts = await Promise.all([
+      simproFetch(`/jobs/${jobId}`).catch((e: any) => ({ pattern: `/jobs/${jobId}`, error: e.message })),
+      simproFetch(`/jobs/${jobId}/`).catch((e: any) => ({ pattern: `/jobs/${jobId}/`, error: e.message })),
+      simproFetch(`/jobs/${jobId}/details/`).catch((e: any) => ({ pattern: `/jobs/${jobId}/details/`, error: e.message })),
+      simproFetch(`/jobs/${jobId}/details`).catch((e: any) => ({ pattern: `/jobs/${jobId}/details`, error: e.message })),
     ]);
 
     return NextResponse.json({
-      jobFields: Object.keys(jobDetail),
-      jobDetail,
-      quoteFields: Object.keys(quoteDetail),
-      quoteDetail,
-      invoiceFields: Object.keys(invoiceDetail),
-      invoiceDetail,
+      jobId,
+      attempts,
     });
   } catch (error: any) {
     return NextResponse.json({ status: 'error', message: error.message }, { status: 500 });
