@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { simproFetch } from "@/lib/simpro";
 
+export const dynamic = 'force-dynamic';
 interface SimproListItem {
   ID: number;
   Name: string;
