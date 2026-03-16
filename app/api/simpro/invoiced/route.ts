@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { simproFetch } from "@/lib/simpro";
 
 export const dynamic = 'force-dynamic';
+
 interface InvoiceListItem {
   ID: number;
   Type: string;
@@ -100,7 +101,7 @@ export async function GET() {
       .slice(0, 20)
       .reduce((obj, [k, v]) => ({ ...obj, [k]: v }), {} as Record<string, { count: number; value: number }>);
 
-    // --- Gross margin from linked jobs ---
+    // --- Gross margin from linked jobs (capped at 20 for speed) ---
     const jobsThisMonth = await simproFetch("/jobs/", {
       columns: "ID,Name,Stage,DateIssued,Total",
       if: dateFilter,
@@ -108,7 +109,8 @@ export async function GET() {
 
     const jobIds: number[] = jobsThisMonth
       .filter((j: { Stage: string }) => j.Stage === "Progress" || j.Stage === "Complete" || j.Stage === "Invoiced")
-      .map((j: { ID: number }) => j.ID);
+      .map((j: { ID: number }) => j.ID)
+      .slice(0, 20);
 
     let marginData = {
       jobsAnalysed: 0,
