@@ -32,8 +32,10 @@ interface JobDetail {
 function getPeriodRange(period?: string | null): { start: string; label: string } {
   const now = new Date();
   if (period === "ytd") {
-    const start = new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0];
-    return { start, label: `Year to Date ${now.getFullYear()}` };
+    // Australian financial year: July 1 – June 30
+    const fyStartYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+    const start = new Date(fyStartYear, 6, 1).toISOString().split("T")[0];
+    return { start, label: `FY ${fyStartYear}–${fyStartYear + 1} YTD` };
   }
   if (period === "rolling12") {
     const d = new Date(now);
@@ -82,15 +84,6 @@ export async function GET(request: NextRequest) {
     const unpaidInvoices = invoices.filter((inv) => !inv.IsPaid);
     const totalPaid = paidInvoices.reduce((sum, inv) => sum + (inv.Total?.IncTax ?? 0), 0);
 
-    // --- By type breakdown (ex-tax) ---
-    const byType: Record<string, { count: number; value: number }> = {};
-    for (const inv of invoices) {
-      const t = inv.Type ?? "Unknown";
-      if (!byType[t]) byType[t] = { count: 0, value: 0 };
-      byType[t].count++;
-      byType[t].value += inv.Total?.ExTax ?? 0;
-    }
-
     // --- By customer breakdown (top 20, ex-tax) ---
     const byCustomer: Record<string, { count: number; value: number }> = {};
     for (const inv of invoices) {
@@ -104,23 +97,29 @@ export async function GET(request: NextRequest) {
       .slice(0, 20)
       .reduce((obj, [k, v]) => ({ ...obj, [k]: v }), {} as Record<string, { count: number; value: number }>);
 
-    // --- Gross margin from linked jobs (capped at 20 for speed) ---
-    const jobsInPeriod = await simproFetch("/jobs/", {
-      columns: "ID,Name,Stage,DateIssued,Total",
-      if: dateFilter,
-    });
+    // --- Jobs in period: gross margin + top projects ---
+    const jobsInPeriod: { ID: number; Name: string; Stage: string; Total: { ExTax: number } }[] =
+      await simproFetch("/jobs/", {
+        columns: "ID,Name,Stage,DateIssued,Total",
+        if: dateFilter,
+      });
 
-    const jobIds: number[] = jobsInPeriod
-      .filter((j: { Stage: string }) => j.Stage === "Progress" || j.Stage === "Complete" || j.Stage === "Invoiced")
-      .map((j: { ID: number }) => j.ID)
-      .slice(0, 20);
+    const activeJobs = jobsInPeriod.filter(
+      (j) => j.Stage === "Progress" || j.Stage === "Complete" || j.Stage === "Invoiced"
+    );
+
+    // Top projects by ex-tax value (top 10)
+    const topProjects = activeJobs
+      .map((j) => ({ name: j.Name, value: j.Total?.ExTax ?? 0 }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+
+    // Gross margin from job details (capped at 20 for speed)
+    const jobIds = activeJobs.map((j) => j.ID).slice(0, 20);
 
     let marginData = {
       jobsAnalysed: 0,
       avgGrossMarginActual: 0,
-      avgGrossMarginEstimate: 0,
-      totalGrossProfitLoss: 0,
-      totalInvoicedOnJobs: 0,
     };
 
     if (jobIds.length > 0) {
@@ -129,16 +128,9 @@ export async function GET(request: NextRequest) {
 
       if (withMargin.length > 0) {
         const sumActual = withMargin.reduce((s, j) => s + (j.Totals?.GrossMargin?.Actual ?? 0), 0);
-        const sumEstimate = withMargin.reduce((s, j) => s + (j.Totals?.GrossMargin?.Estimate ?? 0), 0);
-        const sumProfit = withMargin.reduce((s, j) => s + (j.Totals?.GrossProfitLoss ?? 0), 0);
-        const sumInvoiced = withMargin.reduce((s, j) => s + (j.Totals?.InvoicedValue ?? 0), 0);
-
         marginData = {
           jobsAnalysed: withMargin.length,
           avgGrossMarginActual: Math.round((sumActual / withMargin.length) * 100) / 100,
-          avgGrossMarginEstimate: Math.round((sumEstimate / withMargin.length) * 100) / 100,
-          totalGrossProfitLoss: Math.round(sumProfit * 100) / 100,
-          totalInvoicedOnJobs: Math.round(sumInvoiced * 100) / 100,
         };
       }
     }
@@ -149,16 +141,11 @@ export async function GET(request: NextRequest) {
       fetchedAt: new Date().toISOString(),
       summary: {
         invoiceCount: invoices.length,
-        totalInvoiced,
         totalExTax,
-        totalPaid,
-        totalOutstanding,
-        paidCount: paidInvoices.length,
-        unpaidCount: unpaidInvoices.length,
       },
       breakdown: {
-        byType,
         byCustomer: topCustomers,
+        topProjects,
       },
       grossMargin: marginData,
     });

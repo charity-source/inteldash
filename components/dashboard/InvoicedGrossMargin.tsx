@@ -18,23 +18,15 @@ interface ApiResponse {
   fetchedAt: string;
   summary: {
     invoiceCount: number;
-    totalInvoiced: number;
     totalExTax: number;
-    totalPaid: number;
-    totalOutstanding: number;
-    paidCount: number;
-    unpaidCount: number;
   };
   breakdown: {
-    byType: Record<string, { count: number; value: number }>;
     byCustomer: Record<string, { count: number; value: number }>;
+    topProjects: { name: string; value: number }[];
   };
   grossMargin: {
     jobsAnalysed: number;
     avgGrossMarginActual: number;
-    avgGrossMarginEstimate: number;
-    totalGrossProfitLoss: number;
-    totalInvoicedOnJobs: number;
   };
 }
 
@@ -148,9 +140,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
     .map(([name, { count, value }]) => ({ name, invoiceCount: count, value }))
     .sort((a, b) => b.value - a.value);
 
-  const invoiceTypes = Object.entries(data.breakdown.byType)
-    .map(([name, { count, value }]) => ({ name, count, value }))
-    .sort((a, b) => b.value - a.value);
+  const topProjects = data.breakdown.topProjects ?? [];
 
   const marginPct = data.grossMargin.avgGrossMarginActual;
 
@@ -203,8 +193,6 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
           <div className="flex gap-12">
             <SummaryMetric label="Invoices" value={String(data.summary.invoiceCount)} color="#60a5fa" />
             <SummaryMetric label="Total Ex-Tax" value={fmtDollar(data.summary.totalExTax, true)} color="#60a5fa" />
-            <SummaryMetric label="Paid" value={fmtDollar(data.summary.totalPaid, true)} color="#34d399" />
-            <SummaryMetric label="Outstanding" value={fmtDollar(data.summary.totalOutstanding, true)} color="#fbbf24" />
           </div>
         </div>
 
@@ -218,7 +206,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
             icon={<InvoiceIcon />}
             label="Total Invoiced"
             value={fmtDollar(data.summary.totalExTax)}
-            sub={`${data.summary.invoiceCount} invoices | ${data.summary.paidCount} paid, ${data.summary.unpaidCount} unpaid`}
+            sub={`${data.summary.invoiceCount} invoices — ex-tax`}
           />
           <MetricCard
             className={cardFlash}
@@ -234,7 +222,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
           />
         </div>
 
-        {/* TOP CUSTOMERS + BY TYPE ROW */}
+        {/* TOP CUSTOMERS + TOP PROJECTS ROW */}
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Top Customers */}
           <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5 lg:flex-1 min-w-0">
@@ -271,34 +259,31 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
             )}
           </div>
 
-          {/* By Type */}
+          {/* Top Projects */}
           <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5 lg:flex-1 min-w-0">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-[0.92rem] font-bold text-slate-800">By Invoice Type</div>
+              <div className="text-[0.92rem] font-bold text-slate-800">Top Projects</div>
               <span className="text-[0.72rem] font-semibold text-slate-400 bg-gray-100 px-2.5 py-0.5 rounded-full">
                 Ex-tax
               </span>
             </div>
-            {invoiceTypes.length === 0 ? (
-              <div className="text-sm text-slate-400 py-4 text-center">No invoices in this period</div>
+            {topProjects.length === 0 ? (
+              <div className="text-sm text-slate-400 py-4 text-center">No projects in this period</div>
             ) : (
               <div className="flex flex-col gap-0">
-                {invoiceTypes.map((type, i) => {
-                  const maxVal = invoiceTypes[0].value;
-                  const barW = maxVal > 0 ? (type.value / maxVal) * 100 : 0;
+                {topProjects.map((proj, i) => {
+                  const maxVal = topProjects[0].value;
+                  const barW = maxVal > 0 ? (proj.value / maxVal) * 100 : 0;
                   return (
                     <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-b-0">
-                      <span className="text-[0.85rem] font-semibold text-slate-800 w-[120px] truncate">{type.name}</span>
-                      <span className="text-[0.7rem] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded whitespace-nowrap">
-                        {type.count} inv
-                      </span>
+                      <span className="text-[0.85rem] font-semibold text-slate-800 w-[160px] truncate" title={proj.name}>{proj.name}</span>
                       <div className="flex-1 h-[22px] bg-gray-100 rounded overflow-hidden">
                         <div
                           className="h-full rounded bg-emerald-400 transition-all"
                           style={{ width: barW + "%" }}
                         />
                       </div>
-                      <span className="text-[0.85rem] font-bold text-slate-800 whitespace-nowrap">{fmtDollar(type.value, true)}</span>
+                      <span className="text-[0.85rem] font-bold text-slate-800 whitespace-nowrap">{fmtDollar(proj.value, true)}</span>
                     </div>
                   );
                 })}
@@ -306,19 +291,6 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
             )}
           </div>
         </div>
-
-        {/* GROSS MARGIN DETAIL */}
-        {data.grossMargin.jobsAnalysed > 0 && (
-          <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5">
-            <div className="text-[0.92rem] font-bold text-slate-800 mb-4">Gross Margin Detail</div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <MarginStat label="Avg Actual Margin" value={fmtPct(data.grossMargin.avgGrossMarginActual)} color={data.grossMargin.avgGrossMarginActual >= 35 ? "#059669" : "#d97706"} />
-              <MarginStat label="Avg Estimate Margin" value={fmtPct(data.grossMargin.avgGrossMarginEstimate)} color="#64748b" />
-              <MarginStat label="Total Gross Profit/Loss" value={fmtDollar(data.grossMargin.totalGrossProfitLoss)} color={data.grossMargin.totalGrossProfitLoss >= 0 ? "#059669" : "#dc2626"} />
-              <MarginStat label="Jobs Analysed" value={String(data.grossMargin.jobsAnalysed)} color="#3b82f6" />
-            </div>
-          </div>
-        )}
 
         {/* LAST UPDATED */}
         <div className="text-right text-[0.7rem] text-slate-400">
@@ -411,11 +383,3 @@ function MetricCard({
   );
 }
 
-function MarginStat({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div className="bg-gray-50 rounded-lg p-3.5">
-      <div className="text-[0.72rem] text-slate-400 font-semibold uppercase tracking-wide mb-1">{label}</div>
-      <div className="text-lg font-bold" style={{ color }}>{value}</div>
-    </div>
-  );
-}
