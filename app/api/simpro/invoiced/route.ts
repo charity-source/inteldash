@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { simproFetch } from "@/lib/simpro";
 
-export const revalidate = 300; // Cache response for 5 minutes
+export const revalidate = 300;
 
 interface InvoiceListItem {
   ID: number;
@@ -29,8 +29,19 @@ interface JobDetail {
   };
 }
 
-function getMonthStart(): { start: string; label: string } {
+function getPeriodRange(period?: string | null): { start: string; label: string } {
   const now = new Date();
+  if (period === "ytd") {
+    const start = new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0];
+    return { start, label: `Year to Date ${now.getFullYear()}` };
+  }
+  if (period === "rolling12") {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - 12);
+    const start = d.toISOString().split("T")[0];
+    return { start, label: "Rolling 12 Months" };
+  }
+  // Default: current month
   const start = new Date(now.getFullYear(), now.getMonth(), 1)
     .toISOString()
     .split("T")[0];
@@ -38,7 +49,6 @@ function getMonthStart(): { start: string; label: string } {
   return { start, label };
 }
 
-// Fetch all job details in parallel (cached upstream, so safe to fire all at once)
 async function fetchJobDetails(jobIds: number[]): Promise<JobDetail[]> {
   const details = await Promise.all(
     jobIds.map((id) =>
@@ -51,9 +61,10 @@ async function fetchJobDetails(jobIds: number[]): Promise<JobDetail[]> {
   return details.filter(Boolean) as JobDetail[];
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { start, label } = getMonthStart();
+    const period = request.nextUrl.searchParams.get("period");
+    const { start, label } = getPeriodRange(period);
 
     const invoiceColumns = "ID,Type,DateIssued,Total,IsPaid,DatePaid,Customer";
     const dateFilter = `DateIssued gt ${start}`;
@@ -71,22 +82,22 @@ export async function GET() {
     const unpaidInvoices = invoices.filter((inv) => !inv.IsPaid);
     const totalPaid = paidInvoices.reduce((sum, inv) => sum + (inv.Total?.IncTax ?? 0), 0);
 
-    // --- By type breakdown ---
+    // --- By type breakdown (ex-tax) ---
     const byType: Record<string, { count: number; value: number }> = {};
     for (const inv of invoices) {
       const t = inv.Type ?? "Unknown";
       if (!byType[t]) byType[t] = { count: 0, value: 0 };
       byType[t].count++;
-      byType[t].value += inv.Total?.IncTax ?? 0;
+      byType[t].value += inv.Total?.ExTax ?? 0;
     }
 
-    // --- By customer breakdown (top 20) ---
+    // --- By customer breakdown (top 20, ex-tax) ---
     const byCustomer: Record<string, { count: number; value: number }> = {};
     for (const inv of invoices) {
       const name = inv.Customer?.CompanyName ?? "Unknown";
       if (!byCustomer[name]) byCustomer[name] = { count: 0, value: 0 };
       byCustomer[name].count++;
-      byCustomer[name].value += inv.Total?.IncTax ?? 0;
+      byCustomer[name].value += inv.Total?.ExTax ?? 0;
     }
     const topCustomers = Object.entries(byCustomer)
       .sort(([, a], [, b]) => b.value - a.value)
@@ -94,12 +105,12 @@ export async function GET() {
       .reduce((obj, [k, v]) => ({ ...obj, [k]: v }), {} as Record<string, { count: number; value: number }>);
 
     // --- Gross margin from linked jobs (capped at 20 for speed) ---
-    const jobsThisMonth = await simproFetch("/jobs/", {
+    const jobsInPeriod = await simproFetch("/jobs/", {
       columns: "ID,Name,Stage,DateIssued,Total",
       if: dateFilter,
     });
 
-    const jobIds: number[] = jobsThisMonth
+    const jobIds: number[] = jobsInPeriod
       .filter((j: { Stage: string }) => j.Stage === "Progress" || j.Stage === "Complete" || j.Stage === "Invoiced")
       .map((j: { ID: number }) => j.ID)
       .slice(0, 20);
