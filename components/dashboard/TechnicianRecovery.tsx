@@ -85,23 +85,25 @@ function fmtPct(r: number | null): string {
 function GaugeSVG({ rate }: { rate: number | null }) {
   const pct = rate !== null ? rate * 100 : 0;
   const color = rateColor(rate);
+  // Map 0–150% to 0–180° arc sweep
   const angle = Math.min(Math.max((pct / 150) * 180, 0), 180);
-  const rad = ((angle - 180) * Math.PI) / 180;
-  const cx = 70, cy = 65, r = 50;
-  const x = cx + r * Math.cos(rad);
-  const y = cy + r * Math.sin(rad);
+  const rad = (angle * Math.PI) / 180;
+  const cx = 70, cy = 60, r = 45;
+  // Arc starts at left (180°) and sweeps clockwise
+  const endX = cx - r * Math.cos(rad);
+  const endY = cy - r * Math.sin(rad);
   const large = angle > 90 ? 1 : 0;
-  const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 ${large} 1 ${x.toFixed(1)} ${y.toFixed(1)}`;
+  const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 ${large} 1 ${endX.toFixed(2)} ${endY.toFixed(2)}`;
   const bgPath = `M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy}`;
 
   return (
-    <svg width="100" height="65" viewBox="0 0 140 90">
+    <svg viewBox="0 0 140 90" width="120" height="78">
       <path d={bgPath} fill="none" stroke="#e5e7eb" strokeWidth="10" strokeLinecap="round" />
       <path d={arcPath} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round" />
-      <text x="70" y="70" textAnchor="middle" fontSize="18" fontWeight="700" fill={color}>
+      <text x={cx} y={cy + 12} textAnchor="middle" fontSize="18" fontWeight="700" fill={color}>
         {pct.toFixed(1)}%
       </text>
-      <text x="70" y="85" textAnchor="middle" fontSize="9" fill="#9ca3af">
+      <text x={cx} y={cy + 25} textAnchor="middle" fontSize="9" fill="#9ca3af">
         Recovery
       </text>
     </svg>
