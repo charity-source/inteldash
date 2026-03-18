@@ -56,11 +56,11 @@ function stageColor(stage: string): string {
   return STAGE_COLORS[stage] ?? "#94a3b8";
 }
 
-// Donut category mapping
+// Donut category mapping (simPRO job stages: Pending, Progress only for active pipeline)
+// NOTE: Mapping needs confirmation with Sonny post-launch
 const STATUS_GROUPS: { label: string; stages: string[]; color: string }[] = [
-  { label: "Secure", stages: ["Approved"], color: "#10b981" },
   { label: "Scope", stages: ["Pending"], color: "#f59e0b" },
-  { label: "Fulfill", stages: ["Progress", "InProgress"], color: "#3b82f6" },
+  { label: "Fulfill", stages: ["Progress"], color: "#3b82f6" },
 ];
 
 // ── Funnel Chart ────────────────────────────────────────────────────────

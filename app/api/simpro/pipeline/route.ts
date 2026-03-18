@@ -20,8 +20,8 @@ interface JobDetail {
   };
 }
 
-// All job stages needed for the pipeline dashboard
-const ACTIVE_JOB_STAGES = ["Progress", "Pending", "Approved", "InProgress"];
+// Active job stages in simPRO (valid values: Pending, Progress, Complete, Invoiced, Archived)
+const ACTIVE_JOB_STAGES = ["Progress", "Pending"];
 
 // Fetch all job details in parallel (cached upstream, so safe to fire all at once)
 async function fetchJobDetails(jobIds: number[]): Promise<JobDetail[]> {
