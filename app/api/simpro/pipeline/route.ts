@@ -69,8 +69,13 @@ export async function GET() {
       if (!pipeline[stage]) pipeline[stage] = { count: 0, value: 0, items: [] };
 
       const totalExTax = job.Total?.ExTax ?? 0;
+      const totalIncTax = job.Total?.IncTax ?? 0;
       const invoicedValue = invoicedMap.get(job.ID) ?? 0;
-      const amountRemaining = Math.max(0, totalExTax - invoicedValue);
+      // InvoicedValue is inc-tax, so calculate remaining in inc-tax then convert to ex-tax
+      const remainingIncTax = Math.max(0, totalIncTax - invoicedValue);
+      const amountRemaining = totalIncTax > 0
+        ? Math.round(remainingIncTax * (totalExTax / totalIncTax) * 100) / 100
+        : 0;
 
       pipeline[stage].count++;
       pipeline[stage].value += amountRemaining;
