@@ -1,4 +1,5 @@
 import { google, sheets_v4 } from "googleapis";
+import fs from "fs";
 
 /* ── Types ─────────────────────────────────────────────── */
 
@@ -30,25 +31,42 @@ export interface WeeklyDetail {
 const TECH_NAMES = ["Roja", "Vishwa", "Wenxiao", "Louise", "Quoc"];
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const SA_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-const SA_KEY = process.env.GOOGLE_PRIVATE_KEY;
 
 /* ── Auth singleton ────────────────────────────────────── */
 
 let _sheets: sheets_v4.Sheets | null = null;
 
+function getCredentials(): { email: string; key: string } {
+  // Option 1: JSON key file path (local dev)
+  const keyPath = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_PATH;
+  if (keyPath && fs.existsSync(keyPath)) {
+    const json = JSON.parse(fs.readFileSync(keyPath, "utf-8"));
+    return { email: json.client_email, key: json.private_key };
+  }
+
+  // Option 2: Env vars (Vercel production)
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const key = process.env.GOOGLE_PRIVATE_KEY;
+  if (email && key) {
+    return { email, key: key.replace(/\\n/g, "\n") };
+  }
+
+  throw new Error(
+    "Missing Google credentials: set GOOGLE_SERVICE_ACCOUNT_KEY_PATH or GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_PRIVATE_KEY"
+  );
+}
+
 function getSheets(): sheets_v4.Sheets {
   if (_sheets) return _sheets;
 
-  if (!SA_EMAIL || !SA_KEY || !SHEET_ID) {
-    throw new Error(
-      "Missing Google Sheets env vars: GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_SHEET_ID"
-    );
+  if (!SHEET_ID) {
+    throw new Error("Missing GOOGLE_SHEET_ID env var");
   }
 
+  const creds = getCredentials();
   const auth = new google.auth.JWT({
-    email: SA_EMAIL,
-    key: SA_KEY.replace(/\\n/g, "\n"),
+    email: creds.email,
+    key: creds.key,
     scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
   });
 

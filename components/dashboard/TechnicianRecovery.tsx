@@ -438,25 +438,23 @@ export default function TechnicianRecovery({
       </div>
 
       {/* ── Top cards: Gauge + 4 summary cards ── */}
-      <div className="grid grid-cols-[120px_1fr] gap-3">
+      <div className="grid grid-cols-5 gap-3">
         <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
           <GaugeSVG rate={groupRate} />
         </div>
-        <div className="grid grid-cols-4 gap-3">
-          <SummaryCard label="Total Actual Cost" value={fmtDollar(totalActual)} sub="Latest week payroll" />
-          <SummaryCard label="Total Costed Revenue" value={fmtDollar(totalCosted)} sub="Latest week billed" />
-          <SummaryCard
-            label="Group Recovery"
-            value={fmtPct(groupRate)}
-            sub={latest.weekEnding}
-            color={rateColor(groupRate)}
-          />
-          <SummaryCard
-            label="Active Technicians"
-            value={`${activeTechs.length} / ${TECHS.length}`}
-            sub={activeTechs.join(", ")}
-          />
-        </div>
+        <SummaryCard label="Total Actual Cost" value={fmtDollar(totalActual)} sub="Latest week payroll" />
+        <SummaryCard label="Total Costed Revenue" value={fmtDollar(totalCosted)} sub="Latest week billed" />
+        <SummaryCard
+          label="Group Recovery"
+          value={fmtPct(groupRate)}
+          sub={latest.weekEnding}
+          color={rateColor(groupRate)}
+        />
+        <SummaryCard
+          label="Active Technicians"
+          value={`${activeTechs.length} / ${TECHS.length}`}
+          sub={activeTechs.join(", ")}
+        />
       </div>
 
       {/* ── Bar chart: latest week recovery per tech ── */}
