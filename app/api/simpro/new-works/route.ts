@@ -36,7 +36,7 @@ export async function GET() {
     const { start, label } = getMonthStart();
 
     const listColumns = "ID,Name,Stage,Status,DateIssued,Total";
-    const dateFilter = `DateIssued>=${start}`;
+    const dateFilter = `DateIssued ge(${start})`;
 
     const [jobs, quotes] = await Promise.all([
       simproFetch("/jobs/", { columns: listColumns, if: dateFilter }),
