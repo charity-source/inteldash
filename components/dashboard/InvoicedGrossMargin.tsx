@@ -33,15 +33,15 @@ interface ApiResponse {
 // -- Helpers ----------------------------------------------------------------
 function fmtDollar(v: number, compact?: boolean): string {
   if (compact && Math.abs(v) >= 1_000_000) {
-    return "$" + (v / 1_000_000).toFixed(1) + "M";
+    return "$" + (v / 1_000_000).toFixed(2) + "M";
   }
   const abs = Math.abs(v);
-  const s = "$" + abs.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const s = "$" + abs.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return v < 0 ? "-" + s : s;
 }
 
 function fmtPct(v: number): string {
-  return v.toFixed(1) + "%";
+  return v.toFixed(2) + "%";
 }
 
 // -- Icons ------------------------------------------------------------------

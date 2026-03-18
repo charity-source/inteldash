@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
         const sumActual = withMargin.reduce((s, j) => s + (j.Totals?.GrossMargin?.Actual ?? 0), 0);
         marginData = {
           jobsAnalysed: withMargin.length,
-          avgGrossMarginActual: Math.round((sumActual / withMargin.length) * 100) / 100,
+          avgGrossMarginActual: sumActual / withMargin.length,
         };
       }
     }
