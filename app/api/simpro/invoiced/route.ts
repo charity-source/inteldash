@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { simproFetch } from "@/lib/simpro";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // Cache response for 5 minutes
 
 interface InvoiceListItem {
   ID: number;
@@ -38,25 +38,17 @@ function getMonthStart(): { start: string; label: string } {
   return { start, label };
 }
 
-// Batch fetch job details in groups to respect rate limits
+// Fetch all job details in parallel (cached upstream, so safe to fire all at once)
 async function fetchJobDetails(jobIds: number[]): Promise<JobDetail[]> {
-  const BATCH_SIZE = 10;
-  const results: JobDetail[] = [];
-
-  for (let i = 0; i < jobIds.length; i += BATCH_SIZE) {
-    const batch = jobIds.slice(i, i + BATCH_SIZE);
-    const details = await Promise.all(
-      batch.map((id) =>
-        simproFetch(`/jobs/${id}`).catch((err: Error) => {
-          console.error(`[invoiced] Failed to fetch job ${id}:`, err.message);
-          return null;
-        })
-      )
-    );
-    results.push(...(details.filter(Boolean) as JobDetail[]));
-  }
-
-  return results;
+  const details = await Promise.all(
+    jobIds.map((id) =>
+      simproFetch(`/jobs/${id}`).catch((err: Error) => {
+        console.error(`[invoiced] Failed to fetch job ${id}:`, err.message);
+        return null;
+      })
+    )
+  );
+  return details.filter(Boolean) as JobDetail[];
 }
 
 export async function GET() {
@@ -140,7 +132,7 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       period: label,
       periodStart: start,
       fetchedAt: new Date().toISOString(),
@@ -159,6 +151,8 @@ export async function GET() {
       },
       grossMargin: marginData,
     });
+    response.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+    return response;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[invoiced]", message);

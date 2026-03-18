@@ -19,6 +19,7 @@ export async function simproFetch(endpoint: string, params?: Record<string, stri
         'Authorization': `Bearer ${TOKEN}`,
         'Content-Type': 'application/json',
       },
+      next: { revalidate: 300 }, // Cache upstream response for 5 minutes
     });
     if (!res.ok) {
       const body = await res.text();
@@ -45,6 +46,7 @@ export async function simproFetch(endpoint: string, params?: Record<string, stri
         'Authorization': `Bearer ${TOKEN}`,
         'Content-Type': 'application/json',
       },
+      next: { revalidate: 300 }, // Cache upstream response for 5 minutes
     });
 
     if (!res.ok) {

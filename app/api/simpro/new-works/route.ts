@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { simproFetch } from "@/lib/simpro";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // Cache response for 5 minutes
 interface SimproListItem {
   ID: number;
   Name: string;
@@ -48,7 +48,7 @@ export async function GET() {
     const jobValue = jobs.reduce((sum: number, j: SimproListItem) => sum + (j.Total?.IncTax ?? 0), 0);
     const quoteValue = quotes.reduce((sum: number, q: SimproListItem) => sum + (q.Total?.IncTax ?? 0), 0);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       period: label,
       periodStart: start,
       fetchedAt: new Date().toISOString(),
@@ -63,6 +63,8 @@ export async function GET() {
         quotesByStage: groupByStage(quotes),
       },
     });
+    response.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+    return response;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[new-works]", message);
