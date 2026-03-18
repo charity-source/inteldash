@@ -38,6 +38,12 @@ interface TopProject {
   value: number;
 }
 
+interface TopCustomer {
+  name: string;
+  invoiceCount: number;
+  value: number;
+}
+
 interface MarginData {
   ytd: { invoiced: number; cost: number; grossProfit: number; margin: number };
   cards: {
@@ -53,6 +59,7 @@ interface MarginData {
   categories: CategoryMargin[];
   invoices: Invoice[];
   topProjects: TopProject[];
+  topCustomers: TopCustomer[];
   invoicePanel: {
     thisMonth: number;
     lastMonth: number;
@@ -205,6 +212,11 @@ function generateData(): MarginData {
     .map((name) => ({ name, value: rand(15000, 180000) }))
     .sort((a, b) => b.value - a.value);
 
+  // Top Customers
+  const topCustomers: TopCustomer[] = CLIENTS
+    .map((name) => ({ name, invoiceCount: rand(10, 500), value: rand(50000, 800000) }))
+    .sort((a, b) => b.value - a.value);
+
   return {
     ytd: { invoiced: ytdInvoiced, cost: ytdCost, grossProfit: ytdGrossProfit, margin: ytdMargin },
     cards: {
@@ -220,6 +232,7 @@ function generateData(): MarginData {
     categories,
     invoices,
     topProjects,
+    topCustomers,
     invoicePanel: {
       thisMonth: invoiced,
       lastMonth: rand(280000, 460000),
@@ -603,36 +616,65 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
           </div>
         </div>
 
-        {/* TOP PROJECTS */}
-        <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[0.92rem] font-bold text-slate-800">Top Projects</div>
-            <span className="text-[0.72rem] font-semibold text-slate-400 bg-gray-100 px-2.5 py-0.5 rounded-full">
-              Ex-tax
-            </span>
-          </div>
-          <div className="flex flex-col gap-0">
-            {d.topProjects.map((proj, i) => {
-              const maxVal = d.topProjects[0].value;
-              const barW = maxVal > 0 ? (proj.value / maxVal) * 100 : 0;
-              return (
-                <div key={i} className="flex items-center gap-4 py-3 border-b border-gray-100 last:border-b-0">
-                  <span className="text-[0.78rem] font-bold text-slate-400 w-5 text-right">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[0.85rem] font-semibold text-slate-800 truncate">{proj.name}</span>
-                      <span className="text-[0.85rem] font-bold text-slate-800 ml-3 whitespace-nowrap">{fmtDollar(proj.value)}</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        {/* TOP CUSTOMERS + TOP PROJECTS ROW */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Top Customers */}
+          <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5 lg:flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[0.92rem] font-bold text-slate-800">Top Customers</div>
+              <span className="text-[0.72rem] font-semibold text-slate-400 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                Ex-tax
+              </span>
+            </div>
+            <div className="flex flex-col gap-0">
+              {d.topCustomers.map((cust, i) => {
+                const maxVal = d.topCustomers[0].value;
+                const barW = maxVal > 0 ? (cust.value / maxVal) * 100 : 0;
+                return (
+                  <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-b-0">
+                    <span className="text-[0.85rem] font-semibold text-slate-800 w-[120px] truncate">{cust.name}</span>
+                    <span className="text-[0.7rem] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded whitespace-nowrap">
+                      {cust.invoiceCount} inv
+                    </span>
+                    <div className="flex-1 h-[22px] bg-gray-100 rounded overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-blue-500 transition-all"
+                        className="h-full rounded bg-blue-400 transition-all"
                         style={{ width: barW + "%" }}
                       />
                     </div>
+                    <span className="text-[0.85rem] font-bold text-slate-800 whitespace-nowrap">{fmtDollar(cust.value, true)}</span>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Top Projects */}
+          <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5 lg:flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[0.92rem] font-bold text-slate-800">Top Projects</div>
+              <span className="text-[0.72rem] font-semibold text-slate-400 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                Ex-tax
+              </span>
+            </div>
+            <div className="flex flex-col gap-0">
+              {d.topProjects.map((proj, i) => {
+                const maxVal = d.topProjects[0].value;
+                const barW = maxVal > 0 ? (proj.value / maxVal) * 100 : 0;
+                return (
+                  <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-b-0">
+                    <span className="text-[0.85rem] font-semibold text-slate-800 w-[120px] truncate">{proj.name}</span>
+                    <div className="flex-1 h-[22px] bg-gray-100 rounded overflow-hidden">
+                      <div
+                        className="h-full rounded bg-blue-400 transition-all"
+                        style={{ width: barW + "%" }}
+                      />
+                    </div>
+                    <span className="text-[0.85rem] font-bold text-slate-800 whitespace-nowrap">{fmtDollar(proj.value)}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
