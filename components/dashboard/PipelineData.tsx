@@ -41,14 +41,7 @@ function fmtDollarFull(v: number): string {
   return "$" + v.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
-// Donut category grouping — groups statuses by their prefix
-// NOTE: Mapping needs confirmation with Sonny post-launch
-const DONUT_GROUPS: { label: string; prefixes: string[]; color: string }[] = [
-  { label: "Secure", prefixes: ["Secure"], color: "#10b981" },
-  { label: "Scope", prefixes: ["Scope"], color: "#f59e0b" },
-  { label: "Fulfill", prefixes: ["Fulfil", "Fulfill"], color: "#3b82f6" },
-  { label: "Invoice", prefixes: ["Invoiced", "Pre-Invoice"], color: "#8b5cf6" },
-];
+// Donut shows each individual status — no grouping, uses simPRO colors
 
 // ── Funnel Chart ────────────────────────────────────────────────────────
 function FunnelChart({
@@ -174,18 +167,15 @@ function ItemsTable({ pipeline }: { pipeline: Record<string, StatusData> }) {
 
 // ── Pipeline Donut (Secure / Scope / Fulfill) ──────────────────────────
 function PipelineDonut({ pipeline }: { pipeline: Record<string, StatusData> }) {
-  const groups = DONUT_GROUPS.map((group) => {
-    let count = 0;
-    let value = 0;
-    for (const [statusName, data] of Object.entries(pipeline)) {
-      const matches = group.prefixes.some((prefix) => statusName.startsWith(prefix));
-      if (matches) {
-        count += data.count;
-        value += data.value;
-      }
-    }
-    return { ...group, count, value };
-  }).filter((g) => g.count > 0);
+  const groups = Object.entries(pipeline)
+    .filter(([, v]) => v.count > 0)
+    .sort(([, a], [, b]) => b.count - a.count)
+    .map(([label, data]) => ({
+      label,
+      count: data.count,
+      value: data.value,
+      color: data.color,
+    }));
 
   const total = groups.reduce((s, g) => s + g.count, 0);
   const cx = 100, cy = 100, r = 70, innerR = 48;
@@ -231,21 +221,14 @@ function PipelineDonut({ pipeline }: { pipeline: Record<string, StatusData> }) {
           Active
         </text>
       </svg>
-      <div className="flex gap-5 mt-3">
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3">
         {groups.map((g) => (
-          <div key={g.label} className="flex items-center gap-1.5 text-[0.82rem]">
-            <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: g.color }} />
-            <span className="font-semibold text-slate-700">{g.label}</span>
-            <span className="text-slate-400 font-medium">
+          <div key={g.label} className="flex items-center gap-1.5 text-[0.72rem]">
+            <span className="w-2.5 h-2.5 rounded-sm inline-block shrink-0" style={{ background: g.color }} />
+            <span className="font-semibold text-slate-700 truncate max-w-[140px]" title={g.label}>{g.label}</span>
+            <span className="text-slate-400 font-medium whitespace-nowrap">
               {g.count} ({((g.count / total) * 100).toFixed(0)}%)
             </span>
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-5 mt-2">
-        {groups.map((g) => (
-          <div key={g.label} className="text-[0.78rem] font-bold" style={{ color: g.color }}>
-            {fmtDollar(g.value)}
           </div>
         ))}
       </div>
