@@ -7,14 +7,16 @@ import { useState, useEffect } from "react";
 interface PipelineJobItem {
   ID: number;
   Name: string;
+  status: string;
   totalExTax: number;
   invoicedValue: number;
   amountRemaining: number;
 }
 
-interface StageData {
+interface StatusData {
   count: number;
   value: number;
+  color: string;
   items: PipelineJobItem[];
 }
 
@@ -25,7 +27,7 @@ interface ApiResponse {
     activeJobCount: number;
     avgJobValue: number;
   };
-  pipeline: Record<string, StageData>;
+  pipeline: Record<string, StatusData>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
@@ -39,28 +41,13 @@ function fmtDollarFull(v: number): string {
   return "$" + v.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
-// Stage colors
-const STAGE_COLORS: Record<string, string> = {
-  Progress: "#3b82f6",
-  Pending: "#f59e0b",
-  Estimated: "#8b5cf6",
-  Complete: "#10b981",
-  Invoiced: "#0d9488",
-  Archived: "#94a3b8",
-  Approved: "#6d28d9",
-  InProgress: "#2563eb",
-  Unknown: "#cbd5e1",
-};
-
-function stageColor(stage: string): string {
-  return STAGE_COLORS[stage] ?? "#94a3b8";
-}
-
-// Donut category mapping (simPRO job stages: Pending, Progress only for active pipeline)
+// Donut category grouping — groups statuses by their prefix
 // NOTE: Mapping needs confirmation with Sonny post-launch
-const STATUS_GROUPS: { label: string; stages: string[]; color: string }[] = [
-  { label: "Scope", stages: ["Pending"], color: "#f59e0b" },
-  { label: "Fulfill", stages: ["Progress"], color: "#3b82f6" },
+const DONUT_GROUPS: { label: string; prefixes: string[]; color: string }[] = [
+  { label: "Secure", prefixes: ["Secure"], color: "#10b981" },
+  { label: "Scope", prefixes: ["Scope"], color: "#f59e0b" },
+  { label: "Fulfill", prefixes: ["Fulfil", "Fulfill"], color: "#3b82f6" },
+  { label: "Invoice", prefixes: ["Invoiced", "Pre-Invoice"], color: "#8b5cf6" },
 ];
 
 // ── Funnel Chart ────────────────────────────────────────────────────────
@@ -69,7 +56,7 @@ function FunnelChart({
   title,
   totalLabel,
 }: {
-  data: Record<string, StageData>;
+  data: Record<string, StatusData>;
   title: string;
   totalLabel: string;
 }) {
@@ -98,15 +85,15 @@ function FunnelChart({
         </span>
       </div>
       <div className="flex flex-col gap-2.5">
-        {entries.map(([stage, val]) => {
+        {entries.map(([status, val]) => {
           const barPct = Math.max(8, (val.value / maxValue) * 100);
           return (
-            <div key={stage} className="flex items-center gap-3">
-              <div className="w-[80px] text-[0.82rem] font-semibold text-slate-700 shrink-0">{stage}</div>
+            <div key={status} className="flex items-center gap-3">
+              <div className="w-[140px] text-[0.78rem] font-semibold text-slate-700 shrink-0 truncate" title={status}>{status}</div>
               <div className="flex-1 h-8 bg-gray-100 rounded-md overflow-hidden relative">
                 <div
                   className="h-full rounded-md transition-all duration-500"
-                  style={{ width: barPct + "%", background: stageColor(stage), opacity: 0.85 }}
+                  style={{ width: barPct + "%", background: val.color, opacity: 0.85 }}
                 />
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[0.72rem] font-bold text-slate-700">
                   {val.count} items
@@ -124,9 +111,9 @@ function FunnelChart({
 }
 
 // ── Items Table ─────────────────────────────────────────────────────────
-function ItemsTable({ pipeline }: { pipeline: Record<string, StageData> }) {
-  const allItems = Object.entries(pipeline).flatMap(([stage, data]) =>
-    data.items.map((item) => ({ ...item, stage }))
+function ItemsTable({ pipeline }: { pipeline: Record<string, StatusData> }) {
+  const allItems = Object.entries(pipeline).flatMap(([, data]) =>
+    data.items.map((item) => ({ ...item, color: data.color }))
   );
 
   const sorted = allItems.sort((a, b) => b.amountRemaining - a.amountRemaining).slice(0, 15);
@@ -158,7 +145,7 @@ function ItemsTable({ pipeline }: { pipeline: Record<string, StageData> }) {
           </thead>
           <tbody>
             {sorted.map((item) => (
-              <tr key={`${item.stage}-${item.ID}`} className="transition-colors hover:bg-slate-50">
+              <tr key={`${item.status}-${item.ID}`} className="transition-colors hover:bg-slate-50">
                 <td className="text-[0.85rem] px-4 py-3 border-b border-gray-200 font-mono text-slate-500">
                   {item.ID}
                 </td>
@@ -168,9 +155,9 @@ function ItemsTable({ pipeline }: { pipeline: Record<string, StageData> }) {
                 <td className="text-[0.85rem] px-4 py-3 border-b border-gray-200">
                   <span
                     className="text-[0.72rem] font-semibold px-2.5 py-0.5 rounded-xl text-white"
-                    style={{ background: stageColor(item.stage) }}
+                    style={{ background: item.color }}
                   >
-                    {item.stage}
+                    {item.status}
                   </span>
                 </td>
                 <td className="text-[0.85rem] px-4 py-3 border-b border-gray-200 text-right font-bold text-slate-800">
@@ -186,13 +173,13 @@ function ItemsTable({ pipeline }: { pipeline: Record<string, StageData> }) {
 }
 
 // ── Pipeline Donut (Secure / Scope / Fulfill) ──────────────────────────
-function PipelineDonut({ pipeline }: { pipeline: Record<string, StageData> }) {
-  const groups = STATUS_GROUPS.map((group) => {
+function PipelineDonut({ pipeline }: { pipeline: Record<string, StatusData> }) {
+  const groups = DONUT_GROUPS.map((group) => {
     let count = 0;
     let value = 0;
-    for (const stage of group.stages) {
-      const data = pipeline[stage];
-      if (data) {
+    for (const [statusName, data] of Object.entries(pipeline)) {
+      const matches = group.prefixes.some((prefix) => statusName.startsWith(prefix));
+      if (matches) {
         count += data.count;
         value += data.value;
       }
@@ -351,9 +338,6 @@ export default function PipelineData({ refreshTrigger, isActive }: DashboardComp
   const { summary, pipeline, fetchedAt } = data;
   const cardFlash = flash ? "animate-[cardFlash_0.4s_ease-out]" : "";
 
-  // Count stages with data
-  const stageCount = Object.keys(pipeline).filter((k) => pipeline[k].count > 0).length;
-
   return (
     <>
       <style>{`
@@ -456,19 +440,19 @@ export default function PipelineData({ refreshTrigger, isActive }: DashboardComp
               {Object.entries(pipeline)
                 .filter(([, v]) => v.count > 0)
                 .sort(([, a], [, b]) => b.value - a.value)
-                .map(([stage, val]) => {
+                .map(([status, val]) => {
                   const maxVal = Math.max(
                     ...Object.values(pipeline).filter((v) => v.count > 0).map((v) => v.value),
                     1
                   );
                   const barPct = Math.max(8, (val.value / maxVal) * 100);
                   return (
-                    <div key={stage} className="flex items-center gap-3">
-                      <div className="w-[80px] text-[0.82rem] font-semibold text-slate-700 shrink-0">{stage}</div>
+                    <div key={status} className="flex items-center gap-3">
+                      <div className="w-[180px] text-[0.78rem] font-semibold text-slate-700 shrink-0 truncate" title={status}>{status}</div>
                       <div className="flex-1 h-7 bg-gray-100 rounded-md overflow-hidden">
                         <div
                           className="h-full rounded-md transition-all duration-500"
-                          style={{ width: barPct + "%", background: stageColor(stage), opacity: 0.8 }}
+                          style={{ width: barPct + "%", background: val.color, opacity: 0.8 }}
                         />
                       </div>
                       <div className="w-[50px] text-right text-[0.78rem] font-bold text-slate-600 shrink-0">

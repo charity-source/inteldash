@@ -57,16 +57,18 @@ export async function GET() {
       invoicedMap.set(detail.ID, detail.Totals?.InvoicedValue ?? 0);
     }
 
-    // Build pipeline grouped by stage with amountRemaining
+    // Build pipeline grouped by Status name with amountRemaining
     const pipeline: Record<string, {
       count: number;
       value: number;
-      items: { ID: number; Name: string; totalExTax: number; invoicedValue: number; amountRemaining: number }[];
+      color: string;
+      items: { ID: number; Name: string; status: string; totalExTax: number; invoicedValue: number; amountRemaining: number }[];
     }> = {};
 
     for (const job of allJobs) {
-      const stage = job.Stage ?? "Unknown";
-      if (!pipeline[stage]) pipeline[stage] = { count: 0, value: 0, items: [] };
+      const status = job.Status?.Name ?? "Unknown";
+      const color = job.Status?.Color ?? "#94a3b8";
+      if (!pipeline[status]) pipeline[status] = { count: 0, value: 0, color, items: [] };
 
       const totalExTax = job.Total?.ExTax ?? 0;
       const totalIncTax = job.Total?.IncTax ?? 0;
@@ -77,20 +79,21 @@ export async function GET() {
         ? Math.round(remainingIncTax * (totalExTax / totalIncTax) * 100) / 100
         : 0;
 
-      pipeline[stage].count++;
-      pipeline[stage].value += amountRemaining;
-      pipeline[stage].items.push({
+      pipeline[status].count++;
+      pipeline[status].value += amountRemaining;
+      pipeline[status].items.push({
         ID: job.ID,
         Name: job.Name,
+        status,
         totalExTax,
         invoicedValue,
         amountRemaining,
       });
     }
 
-    // Sort items within each stage by amountRemaining descending
-    for (const stage of Object.values(pipeline)) {
-      stage.items.sort((a, b) => b.amountRemaining - a.amountRemaining);
+    // Sort items within each status by amountRemaining descending
+    for (const statusGroup of Object.values(pipeline)) {
+      statusGroup.items.sort((a, b) => b.amountRemaining - a.amountRemaining);
     }
 
     // Summary

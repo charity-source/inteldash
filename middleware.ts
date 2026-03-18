@@ -18,6 +18,6 @@ export default middleware;
 export const config = {
   matcher: [
     // Protect all routes except login, terms, privacy, api/auth, and static files
-    "/((?!login|terms|privacy|api/auth|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|terms|privacy|api/auth|api/simpro/test|_next/static|_next/image|favicon.ico).*)",
   ],
 };
