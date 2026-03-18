@@ -92,7 +92,7 @@ function GaugeSVG({ rate }: { rate: number | null }) {
   // Arc starts at left (180°) and sweeps clockwise
   const endX = cx - r * Math.cos(rad);
   const endY = cy - r * Math.sin(rad);
-  const large = angle > 90 ? 1 : 0;
+  const large = angle >= 180 ? 1 : 0;
   const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 ${large} 1 ${endX.toFixed(2)} ${endY.toFixed(2)}`;
   const bgPath = `M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy}`;
 
