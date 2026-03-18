@@ -61,23 +61,23 @@ export async function GET() {
     const pipeline: Record<string, {
       count: number;
       value: number;
-      items: { ID: number; Name: string; totalIncTax: number; invoicedValue: number; amountRemaining: number }[];
+      items: { ID: number; Name: string; totalExTax: number; invoicedValue: number; amountRemaining: number }[];
     }> = {};
 
     for (const job of allJobs) {
       const stage = job.Stage ?? "Unknown";
       if (!pipeline[stage]) pipeline[stage] = { count: 0, value: 0, items: [] };
 
-      const totalIncTax = job.Total?.IncTax ?? 0;
+      const totalExTax = job.Total?.ExTax ?? 0;
       const invoicedValue = invoicedMap.get(job.ID) ?? 0;
-      const amountRemaining = Math.max(0, totalIncTax - invoicedValue);
+      const amountRemaining = Math.max(0, totalExTax - invoicedValue);
 
       pipeline[stage].count++;
       pipeline[stage].value += amountRemaining;
       pipeline[stage].items.push({
         ID: job.ID,
         Name: job.Name,
-        totalIncTax,
+        totalExTax,
         invoicedValue,
         amountRemaining,
       });

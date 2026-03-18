@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 interface PipelineJobItem {
   ID: number;
   Name: string;
-  totalIncTax: number;
+  totalExTax: number;
   invoicedValue: number;
   amountRemaining: number;
 }
