@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     const { start, label } = getPeriodRange(period);
 
     const invoiceColumns = "ID,Type,DateIssued,Total,IsPaid,DatePaid,Customer";
-    const dateFilter = `DateIssued ge ${start}`;
+    const dateFilter = `DateIssued>=${start}`;
 
     const invoices: InvoiceListItem[] = await simproFetch("/invoices/", {
       columns: invoiceColumns,
