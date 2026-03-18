@@ -36,12 +36,14 @@ export async function GET() {
     const { start, label } = getMonthStart();
 
     const listColumns = "ID,Name,Stage,Status,DateIssued,Total";
-    const dateFilter = `DateIssued ge(${start})`;
 
-    const [jobs, quotes] = await Promise.all([
-      simproFetch("/jobs/", { columns: listColumns, if: dateFilter }),
-      simproFetch("/quotes/", { columns: listColumns, if: dateFilter }),
+    // simPRO ignores `if` filter — fetch all, filter client-side
+    const [allJobs, allQuotes] = await Promise.all([
+      simproFetch("/jobs/", { columns: listColumns }),
+      simproFetch("/quotes/", { columns: listColumns }),
     ]);
+    const jobs = allJobs.filter((j: SimproListItem) => j.DateIssued >= start);
+    const quotes = allQuotes.filter((q: SimproListItem) => q.DateIssued >= start);
 
     const jobCount = jobs.length;
     const quoteCount = quotes.length;

@@ -69,20 +69,16 @@ export async function GET(request: NextRequest) {
     const { start, label } = getPeriodRange(period);
 
     const invoiceColumns = "ID,Type,DateIssued,Total,IsPaid,DatePaid,Customer";
-    const dateFilter = `DateIssued ge(${start})`;
 
-    const invoices: InvoiceListItem[] = await simproFetch("/invoices/", {
+    // simPRO's /invoices/ endpoint ignores the `if` filter param entirely,
+    // so we fetch all invoices and filter by date client-side
+    const allInvoices: InvoiceListItem[] = await simproFetch("/invoices/", {
       columns: invoiceColumns,
-      if: dateFilter,
     });
+    const invoices = allInvoices.filter((inv) => inv.DateIssued >= start);
 
     // --- Invoice totals ---
-    const totalInvoiced = invoices.reduce((sum, inv) => sum + (inv.Total?.IncTax ?? 0), 0);
     const totalExTax = invoices.reduce((sum, inv) => sum + (inv.Total?.ExTax ?? 0), 0);
-    const totalOutstanding = invoices.reduce((sum, inv) => sum + (inv.Total?.BalanceDue ?? 0), 0);
-    const paidInvoices = invoices.filter((inv) => inv.IsPaid);
-    const unpaidInvoices = invoices.filter((inv) => !inv.IsPaid);
-    const totalPaid = paidInvoices.reduce((sum, inv) => sum + (inv.Total?.IncTax ?? 0), 0);
 
     // --- By customer breakdown (top 20, ex-tax) ---
     const byCustomer: Record<string, { count: number; value: number }> = {};
@@ -98,14 +94,15 @@ export async function GET(request: NextRequest) {
       .reduce((obj, [k, v]) => ({ ...obj, [k]: v }), {} as Record<string, { count: number; value: number }>);
 
     // --- Jobs in period: gross margin + top projects ---
-    const jobsInPeriod: { ID: number; Name: string; Stage: string; Total: { ExTax: number } }[] =
+    // /jobs/ endpoint also ignores `if` — filter client-side
+    const allJobs: { ID: number; Name: string; Stage: string; DateIssued: string; Total: { ExTax: number } }[] =
       await simproFetch("/jobs/", {
         columns: "ID,Name,Stage,DateIssued,Total",
-        if: dateFilter,
       });
 
-    const activeJobs = jobsInPeriod.filter(
-      (j) => j.Stage === "Progress" || j.Stage === "Complete" || j.Stage === "Invoiced"
+    const activeJobs = allJobs.filter(
+      (j) => j.DateIssued >= start &&
+        (j.Stage === "Progress" || j.Stage === "Complete" || j.Stage === "Invoiced")
     );
 
     // Top projects by ex-tax value (top 10)
