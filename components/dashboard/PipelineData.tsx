@@ -4,29 +4,28 @@ import { DashboardComponentProps } from "@/types";
 import { useState, useEffect } from "react";
 
 // ── Types ──────────────────────────────────────────────────────────────
-interface StageItem {
+interface PipelineJobItem {
   ID: number;
   Name: string;
-  value: number;
+  totalIncTax: number;
+  invoicedValue: number;
+  amountRemaining: number;
 }
 
 interface StageData {
   count: number;
   value: number;
-  items: StageItem[];
+  items: PipelineJobItem[];
 }
 
 interface ApiResponse {
   fetchedAt: string;
   summary: {
-    totalPipelineValue: number;
-    jobs: { count: number; value: number };
-    quotes: { count: number; value: number };
+    pipelineValue: number;
+    activeJobCount: number;
+    avgJobValue: number;
   };
-  pipeline: {
-    jobs: Record<string, StageData>;
-    quotes: Record<string, StageData>;
-  };
+  pipeline: Record<string, StageData>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
@@ -49,12 +48,20 @@ const STAGE_COLORS: Record<string, string> = {
   Invoiced: "#0d9488",
   Archived: "#94a3b8",
   Approved: "#6d28d9",
+  InProgress: "#2563eb",
   Unknown: "#cbd5e1",
 };
 
 function stageColor(stage: string): string {
   return STAGE_COLORS[stage] ?? "#94a3b8";
 }
+
+// Donut category mapping
+const STATUS_GROUPS: { label: string; stages: string[]; color: string }[] = [
+  { label: "Secure", stages: ["Approved"], color: "#10b981" },
+  { label: "Scope", stages: ["Pending"], color: "#f59e0b" },
+  { label: "Fulfill", stages: ["Progress", "InProgress"], color: "#3b82f6" },
+];
 
 // ── Funnel Chart ────────────────────────────────────────────────────────
 function FunnelChart({
@@ -117,27 +124,19 @@ function FunnelChart({
 }
 
 // ── Items Table ─────────────────────────────────────────────────────────
-function ItemsTable({
-  pipeline,
-  type,
-}: {
-  pipeline: Record<string, StageData>;
-  type: "Jobs" | "Quotes";
-}) {
-  // Flatten all items with their stage
+function ItemsTable({ pipeline }: { pipeline: Record<string, StageData> }) {
   const allItems = Object.entries(pipeline).flatMap(([stage, data]) =>
     data.items.map((item) => ({ ...item, stage }))
   );
 
-  // Sort by value descending, show top 15
-  const sorted = allItems.sort((a, b) => b.value - a.value).slice(0, 15);
+  const sorted = allItems.sort((a, b) => b.amountRemaining - a.amountRemaining).slice(0, 15);
 
   if (sorted.length === 0) return null;
 
   return (
     <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-        <div className="text-[0.92rem] font-bold text-slate-800">Top {type} by Value</div>
+        <div className="text-[0.92rem] font-bold text-slate-800">Top Jobs by Value</div>
         <span className="text-[0.72rem] font-semibold text-slate-400 bg-gray-100 px-2.5 py-0.5 rounded-full">
           Showing {sorted.length} of {allItems.length}
         </span>
@@ -146,11 +145,11 @@ function ItemsTable({
         <table className="w-full border-collapse" style={{ minWidth: 600 }}>
           <thead>
             <tr>
-              {["ID", "Name", "Stage", "Value"].map((h) => (
+              {["ID", "Name", "Status", "Remaining"].map((h) => (
                 <th
                   key={h}
                   className="text-[0.73rem] font-semibold text-slate-400 uppercase tracking-wide text-left px-4 py-2.5 bg-slate-50 border-b border-gray-200"
-                  style={h === "Value" ? { textAlign: "right" } : undefined}
+                  style={h === "Remaining" ? { textAlign: "right" } : undefined}
                 >
                   {h}
                 </th>
@@ -175,7 +174,7 @@ function ItemsTable({
                   </span>
                 </td>
                 <td className="text-[0.85rem] px-4 py-3 border-b border-gray-200 text-right font-bold text-slate-800">
-                  {fmtDollarFull(item.value)}
+                  {fmtDollarFull(item.amountRemaining)}
                 </td>
               </tr>
             ))}
@@ -186,27 +185,29 @@ function ItemsTable({
   );
 }
 
-// ── Donut Chart ─────────────────────────────────────────────────────────
-function PipelineDonut({
-  jobs,
-  quotes,
-}: {
-  jobs: { count: number; value: number };
-  quotes: { count: number; value: number };
-}) {
-  const total = jobs.count + quotes.count;
+// ── Pipeline Donut (Secure / Scope / Fulfill) ──────────────────────────
+function PipelineDonut({ pipeline }: { pipeline: Record<string, StageData> }) {
+  const groups = STATUS_GROUPS.map((group) => {
+    let count = 0;
+    let value = 0;
+    for (const stage of group.stages) {
+      const data = pipeline[stage];
+      if (data) {
+        count += data.count;
+        value += data.value;
+      }
+    }
+    return { ...group, count, value };
+  }).filter((g) => g.count > 0);
+
+  const total = groups.reduce((s, g) => s + g.count, 0);
   const cx = 100, cy = 100, r = 70, innerR = 48;
 
   if (total === 0) return null;
 
-  const slices = [
-    { label: "Jobs", count: jobs.count, value: jobs.value, color: "#3b82f6" },
-    { label: "Quotes", count: quotes.count, value: quotes.value, color: "#8b5cf6" },
-  ].filter((s) => s.count > 0);
-
   let startAngle = -90;
-  const arcs = slices.map((slice) => {
-    const pct = slice.count / total;
+  const arcs = groups.map((group) => {
+    const pct = group.count / total;
     const angle = pct * 360;
     const endAngle = startAngle + angle;
     const largeArc = angle > 180 ? 1 : 0;
@@ -227,7 +228,7 @@ function PipelineDonut({
     ].join(" ");
 
     startAngle = endAngle;
-    return { ...slice, path };
+    return { ...group, path };
   });
 
   return (
@@ -244,13 +245,20 @@ function PipelineDonut({
         </text>
       </svg>
       <div className="flex gap-5 mt-3">
-        {slices.map((s) => (
-          <div key={s.label} className="flex items-center gap-1.5 text-[0.82rem]">
-            <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: s.color }} />
-            <span className="font-semibold text-slate-700">{s.label}</span>
+        {groups.map((g) => (
+          <div key={g.label} className="flex items-center gap-1.5 text-[0.82rem]">
+            <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: g.color }} />
+            <span className="font-semibold text-slate-700">{g.label}</span>
             <span className="text-slate-400 font-medium">
-              {s.count} ({((s.count / total) * 100).toFixed(0)}%)
+              {g.count} ({((g.count / total) * 100).toFixed(0)}%)
             </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-5 mt-2">
+        {groups.map((g) => (
+          <div key={g.label} className="text-[0.78rem] font-bold" style={{ color: g.color }}>
+            {fmtDollar(g.value)}
           </div>
         ))}
       </div>
@@ -341,13 +349,10 @@ export default function PipelineData({ refreshTrigger, isActive }: DashboardComp
   if (!data) return null;
 
   const { summary, pipeline, fetchedAt } = data;
-  const totalItems = summary.jobs.count + summary.quotes.count;
-  const avgValue = totalItems > 0 ? summary.totalPipelineValue / totalItems : 0;
   const cardFlash = flash ? "animate-[cardFlash_0.4s_ease-out]" : "";
 
-  // Count stages
-  const jobStageCount = Object.keys(pipeline.jobs).filter((k) => pipeline.jobs[k].count > 0).length;
-  const quoteStageCount = Object.keys(pipeline.quotes).filter((k) => pipeline.quotes[k].count > 0).length;
+  // Count stages with data
+  const stageCount = Object.keys(pipeline).filter((k) => pipeline[k].count > 0).length;
 
   return (
     <>
@@ -385,8 +390,8 @@ export default function PipelineData({ refreshTrigger, isActive }: DashboardComp
       {/* CONTENT */}
       <div className="p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
 
-        {/* KPI CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* KPI CARDS — 3 cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Pipeline Value */}
           <div
             className={`bg-white rounded-[10px] border border-gray-200 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 ${cardFlash}`}
@@ -399,9 +404,9 @@ export default function PipelineData({ refreshTrigger, isActive }: DashboardComp
             </div>
             <div className="text-[0.78rem] font-semibold text-slate-500 uppercase tracking-wide mb-1">Pipeline Value</div>
             <div className="text-[1.8rem] font-extrabold text-slate-800 leading-none">
-              {fmtDollar(summary.totalPipelineValue)}
+              {fmtDollar(summary.pipelineValue)}
             </div>
-            <div className="text-[0.85rem] text-slate-500 mt-1.5 font-medium">Total open pipeline</div>
+            <div className="text-[0.85rem] text-slate-500 mt-1.5 font-medium">Total remaining to invoice</div>
           </div>
 
           {/* Active Items */}
@@ -415,41 +420,13 @@ export default function PipelineData({ refreshTrigger, isActive }: DashboardComp
               </div>
             </div>
             <div className="text-[0.78rem] font-semibold text-slate-500 uppercase tracking-wide mb-1">Active Items</div>
-            <div className="text-[1.8rem] font-extrabold text-slate-800 leading-none">{totalItems}</div>
+            <div className="text-[1.8rem] font-extrabold text-slate-800 leading-none">{summary.activeJobCount}</div>
             <div className="text-[0.85rem] text-slate-500 mt-1.5 font-medium">
-              {summary.jobs.count} jobs · {summary.quotes.count} quotes
+              {summary.activeJobCount} jobs
             </div>
           </div>
 
-          {/* Jobs Value */}
-          <div
-            className={`bg-white rounded-[10px] border border-gray-200 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 ${cardFlash}`}
-            style={{ borderLeft: "4px solid #3b82f6" }}
-          >
-            <div className="text-[0.78rem] font-semibold text-slate-500 uppercase tracking-wide mb-1">Jobs Value</div>
-            <div className="text-[1.8rem] font-extrabold text-slate-800 leading-none">
-              {fmtDollar(summary.jobs.value)}
-            </div>
-            <div className="text-[0.85rem] text-slate-500 mt-1.5 font-medium">
-              {summary.jobs.count} jobs across {jobStageCount} stages
-            </div>
-          </div>
-
-          {/* Quotes Value */}
-          <div
-            className={`bg-white rounded-[10px] border border-gray-200 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 ${cardFlash}`}
-            style={{ borderLeft: "4px solid #8b5cf6" }}
-          >
-            <div className="text-[0.78rem] font-semibold text-slate-500 uppercase tracking-wide mb-1">Quotes Value</div>
-            <div className="text-[1.8rem] font-extrabold text-slate-800 leading-none">
-              {fmtDollar(summary.quotes.value)}
-            </div>
-            <div className="text-[0.85rem] text-slate-500 mt-1.5 font-medium">
-              {summary.quotes.count} quotes across {quoteStageCount} stages
-            </div>
-          </div>
-
-          {/* Avg Item Value */}
+          {/* Average Job Value */}
           <div
             className={`bg-white rounded-[10px] border border-gray-200 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 ${cardFlash}`}
             style={{ borderLeft: "4px solid #f59e0b" }}
@@ -459,98 +436,61 @@ export default function PipelineData({ refreshTrigger, isActive }: DashboardComp
                 <AvgDealIcon />
               </div>
             </div>
-            <div className="text-[0.78rem] font-semibold text-slate-500 uppercase tracking-wide mb-1">Avg Item Value</div>
-            <div className="text-[1.8rem] font-extrabold text-slate-800 leading-none">{fmtDollar(avgValue)}</div>
-            <div className="text-[0.85rem] text-slate-500 mt-1.5 font-medium">Across all stages</div>
+            <div className="text-[0.78rem] font-semibold text-slate-500 uppercase tracking-wide mb-1">Average Job Value</div>
+            <div className="text-[1.8rem] font-extrabold text-slate-800 leading-none">{fmtDollar(summary.avgJobValue)}</div>
+            <div className="text-[0.85rem] text-slate-500 mt-1.5 font-medium">Across all statuses</div>
           </div>
         </div>
 
-        {/* SPLIT OVERVIEW — Donut + Summary */}
+        {/* SPLIT OVERVIEW — Donut + All Status Overview */}
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5 lg:flex-1 min-w-0">
             <div className="text-[0.92rem] font-bold text-slate-800 mb-4">Pipeline Split</div>
-            <PipelineDonut jobs={summary.jobs} quotes={summary.quotes} />
+            <PipelineDonut pipeline={pipeline} />
           </div>
 
-          {/* Quick stage summary */}
+          {/* All Status Overview */}
           <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5 lg:flex-[1.5] min-w-0">
-            <div className="text-[0.92rem] font-bold text-slate-800 mb-4">All Stages Overview</div>
+            <div className="text-[0.92rem] font-bold text-slate-800 mb-4">All Status Overview</div>
             <div className="space-y-2">
-              {/* Merge job + quote stages into a combined view */}
-              {(() => {
-                const combined: Record<string, { jobs: number; jobVal: number; quotes: number; quoteVal: number }> = {};
-                for (const [stage, val] of Object.entries(pipeline.jobs)) {
-                  if (!combined[stage]) combined[stage] = { jobs: 0, jobVal: 0, quotes: 0, quoteVal: 0 };
-                  combined[stage].jobs = val.count;
-                  combined[stage].jobVal = val.value;
-                }
-                for (const [stage, val] of Object.entries(pipeline.quotes)) {
-                  if (!combined[stage]) combined[stage] = { jobs: 0, jobVal: 0, quotes: 0, quoteVal: 0 };
-                  combined[stage].quotes = val.count;
-                  combined[stage].quoteVal = val.value;
-                }
-                const entries = Object.entries(combined).sort(
-                  ([, a], [, b]) => b.jobVal + b.quoteVal - (a.jobVal + a.quoteVal)
-                );
-                const maxVal = Math.max(...entries.map(([, v]) => v.jobVal + v.quoteVal), 1);
-
-                return entries.map(([stage, val]) => {
-                  const total = val.jobVal + val.quoteVal;
-                  const totalCount = val.jobs + val.quotes;
-                  const jobPct = total > 0 ? (val.jobVal / maxVal) * 100 : 0;
-                  const quotePct = total > 0 ? (val.quoteVal / maxVal) * 100 : 0;
+              {Object.entries(pipeline)
+                .filter(([, v]) => v.count > 0)
+                .sort(([, a], [, b]) => b.value - a.value)
+                .map(([stage, val]) => {
+                  const maxVal = Math.max(
+                    ...Object.values(pipeline).filter((v) => v.count > 0).map((v) => v.value),
+                    1
+                  );
+                  const barPct = Math.max(8, (val.value / maxVal) * 100);
                   return (
                     <div key={stage} className="flex items-center gap-3">
                       <div className="w-[80px] text-[0.82rem] font-semibold text-slate-700 shrink-0">{stage}</div>
-                      <div className="flex-1 h-7 bg-gray-100 rounded-md overflow-hidden flex">
-                        {jobPct > 0 && (
-                          <div
-                            className="h-full transition-all duration-500"
-                            style={{ width: jobPct + "%", background: "#3b82f6", opacity: 0.8 }}
-                          />
-                        )}
-                        {quotePct > 0 && (
-                          <div
-                            className="h-full transition-all duration-500"
-                            style={{ width: quotePct + "%", background: "#8b5cf6", opacity: 0.8 }}
-                          />
-                        )}
+                      <div className="flex-1 h-7 bg-gray-100 rounded-md overflow-hidden">
+                        <div
+                          className="h-full rounded-md transition-all duration-500"
+                          style={{ width: barPct + "%", background: stageColor(stage), opacity: 0.8 }}
+                        />
                       </div>
                       <div className="w-[50px] text-right text-[0.78rem] font-bold text-slate-600 shrink-0">
-                        {totalCount}
+                        {val.count}
                       </div>
                       <div className="w-[85px] text-right text-[0.85rem] font-bold text-slate-800 shrink-0">
-                        {fmtDollar(total)}
+                        {fmtDollar(val.value)}
                       </div>
                     </div>
                   );
-                });
-              })()}
-            </div>
-            <div className="flex gap-4 mt-3">
-              <span className="flex items-center gap-1.5 text-[0.72rem] font-semibold text-slate-500">
-                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#3b82f6" }} /> Jobs
-              </span>
-              <span className="flex items-center gap-1.5 text-[0.72rem] font-semibold text-slate-500">
-                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#8b5cf6" }} /> Quotes
-              </span>
+                })}
             </div>
           </div>
         </div>
 
-        {/* FUNNEL BREAKDOWNS */}
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5 lg:flex-1 min-w-0">
-            <FunnelChart data={pipeline.jobs} title="Jobs Pipeline" totalLabel="jobs" />
-          </div>
-          <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5 lg:flex-1 min-w-0">
-            <FunnelChart data={pipeline.quotes} title="Quotes Pipeline" totalLabel="quotes" />
-          </div>
+        {/* JOBS PIPELINE FUNNEL */}
+        <div className="bg-white rounded-[10px] border border-gray-200 shadow-sm p-5">
+          <FunnelChart data={pipeline} title="Jobs Pipeline" totalLabel="jobs" />
         </div>
 
-        {/* ITEMS TABLES */}
-        <ItemsTable pipeline={pipeline.jobs} type="Jobs" />
-        <ItemsTable pipeline={pipeline.quotes} type="Quotes" />
+        {/* TOP JOBS TABLE */}
+        <ItemsTable pipeline={pipeline} />
 
         {/* COMING SOON */}
         <div className="bg-white rounded-[10px] border border-dashed border-gray-300 shadow-sm p-6 text-center">

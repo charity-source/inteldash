@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { simproFetch } from "@/lib/simpro";
 
 export const revalidate = 300; // Cache response for 5 minutes
-interface SimproListItem {
+
+interface SimproJobListItem {
   ID: number;
   Name: string;
   Stage: string;
@@ -11,63 +12,95 @@ interface SimproListItem {
   Total: { ExTax: number; Tax: number; IncTax: number };
 }
 
-// Active stages — adjust if simPRO uses different names
-const ACTIVE_JOB_STAGES = ["Progress", "Pending"];
-const ACTIVE_QUOTE_STAGES = ["InProgress", "Approved"];
+interface JobDetail {
+  ID: number;
+  Totals?: {
+    InvoicedValue?: number;
+    InvoicePercentage?: number;
+  };
+}
 
-function groupByStage(items: SimproListItem[]) {
-  const map: Record<string, { count: number; value: number; items: { ID: number; Name: string; value: number }[] }> = {};
-  for (const item of items) {
-    const stage = item.Stage ?? "Unknown";
-    if (!map[stage]) map[stage] = { count: 0, value: 0, items: [] };
-    map[stage].count++;
-    const val = item.Total?.IncTax ?? 0;
-    map[stage].value += val;
-    map[stage].items.push({ ID: item.ID, Name: item.Name, value: val });
-  }
-  // Sort items within each stage by value descending
-  for (const stage of Object.values(map)) {
-    stage.items.sort((a, b) => b.value - a.value);
-  }
-  return map;
+// All job stages needed for the pipeline dashboard
+const ACTIVE_JOB_STAGES = ["Progress", "Pending", "Approved", "InProgress"];
+
+// Fetch all job details in parallel (cached upstream, so safe to fire all at once)
+async function fetchJobDetails(jobIds: number[]): Promise<JobDetail[]> {
+  const details = await Promise.all(
+    jobIds.map((id) =>
+      simproFetch(`/jobs/${id}`).catch((err: Error) => {
+        console.error(`[pipeline] Failed to fetch job ${id}:`, err.message);
+        return null;
+      })
+    )
+  );
+  return details.filter(Boolean) as JobDetail[];
 }
 
 export async function GET() {
   try {
     const listColumns = "ID,Name,Stage,Status,DateIssued,Total";
 
-    // Fetch each active stage in parallel
-    const jobFetches = ACTIVE_JOB_STAGES.map((stage) =>
-      simproFetch("/jobs/", { columns: listColumns, Stage: stage })
+    // Fetch each active stage in parallel (jobs only, no quotes)
+    const results = await Promise.all(
+      ACTIVE_JOB_STAGES.map((stage) =>
+        simproFetch("/jobs/", { columns: listColumns, Stage: stage })
+      )
     );
-    const quoteFetches = ACTIVE_QUOTE_STAGES.map((stage) =>
-      simproFetch("/quotes/", { columns: listColumns, Stage: stage })
-    );
 
-    const results = await Promise.all([...jobFetches, ...quoteFetches]);
+    const allJobs: SimproJobListItem[] = results.flat();
 
-    // Split results back into jobs vs quotes
-    const allJobs: SimproListItem[] = results
-      .slice(0, ACTIVE_JOB_STAGES.length)
-      .flat();
-    const allQuotes: SimproListItem[] = results
-      .slice(ACTIVE_JOB_STAGES.length)
-      .flat();
+    // Fetch detail for each job to get InvoicedValue
+    const jobIds = allJobs.map((j) => j.ID);
+    const jobDetails = await fetchJobDetails(jobIds);
+    const invoicedMap = new Map<number, number>();
+    for (const detail of jobDetails) {
+      invoicedMap.set(detail.ID, detail.Totals?.InvoicedValue ?? 0);
+    }
 
-    const jobTotal = allJobs.reduce((sum, j) => sum + (j.Total?.IncTax ?? 0), 0);
-    const quoteTotal = allQuotes.reduce((sum, q) => sum + (q.Total?.IncTax ?? 0), 0);
+    // Build pipeline grouped by stage with amountRemaining
+    const pipeline: Record<string, {
+      count: number;
+      value: number;
+      items: { ID: number; Name: string; totalIncTax: number; invoicedValue: number; amountRemaining: number }[];
+    }> = {};
+
+    for (const job of allJobs) {
+      const stage = job.Stage ?? "Unknown";
+      if (!pipeline[stage]) pipeline[stage] = { count: 0, value: 0, items: [] };
+
+      const totalIncTax = job.Total?.IncTax ?? 0;
+      const invoicedValue = invoicedMap.get(job.ID) ?? 0;
+      const amountRemaining = Math.max(0, totalIncTax - invoicedValue);
+
+      pipeline[stage].count++;
+      pipeline[stage].value += amountRemaining;
+      pipeline[stage].items.push({
+        ID: job.ID,
+        Name: job.Name,
+        totalIncTax,
+        invoicedValue,
+        amountRemaining,
+      });
+    }
+
+    // Sort items within each stage by amountRemaining descending
+    for (const stage of Object.values(pipeline)) {
+      stage.items.sort((a, b) => b.amountRemaining - a.amountRemaining);
+    }
+
+    // Summary
+    const pipelineValue = Object.values(pipeline).reduce((s, v) => s + v.value, 0);
+    const activeJobCount = allJobs.length;
+    const avgJobValue = activeJobCount > 0 ? Math.round(pipelineValue / activeJobCount) : 0;
 
     const response = NextResponse.json({
       fetchedAt: new Date().toISOString(),
       summary: {
-        totalPipelineValue: jobTotal + quoteTotal,
-        jobs: { count: allJobs.length, value: jobTotal },
-        quotes: { count: allQuotes.length, value: quoteTotal },
+        pipelineValue,
+        activeJobCount,
+        avgJobValue,
       },
-      pipeline: {
-        jobs: groupByStage(allJobs),
-        quotes: groupByStage(allQuotes),
-      },
+      pipeline,
     });
     response.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
     return response;
