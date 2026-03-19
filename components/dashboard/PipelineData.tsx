@@ -122,13 +122,13 @@ function ItemsTable({ pipeline }: { pipeline: Record<string, StatusData> }) {
         </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: 600 }}>
+        <table className="w-full min-w-[500px] border-collapse">
           <thead>
             <tr>
               {["ID", "Name", "Status", "Remaining"].map((h) => (
                 <th
                   key={h}
-                  className="text-[0.73rem] font-semibold text-slate-400 uppercase tracking-wide text-left px-4 py-2.5 bg-slate-50 border-b border-gray-200"
+                  className={`text-[0.73rem] font-semibold text-slate-400 uppercase tracking-wide text-left px-4 py-2.5 bg-slate-50 border-b border-gray-200 ${h === "Status" ? "hidden md:table-cell" : ""}`}
                   style={h === "Remaining" ? { textAlign: "right" } : undefined}
                 >
                   {h}
@@ -145,15 +145,15 @@ function ItemsTable({ pipeline }: { pipeline: Record<string, StatusData> }) {
                 <td className="text-[0.85rem] px-4 py-3 border-b border-gray-200 font-semibold text-slate-800 max-w-[300px] truncate">
                   {item.Name}
                 </td>
-                <td className="text-[0.85rem] px-4 py-3 border-b border-gray-200">
+                <td className="text-[0.85rem] px-4 py-3 border-b border-gray-200 hidden md:table-cell">
                   <span
-                    className="text-[0.72rem] font-semibold px-2.5 py-0.5 rounded-xl text-white"
+                    className="text-[0.72rem] font-semibold px-2.5 py-0.5 rounded-xl text-white whitespace-nowrap"
                     style={{ background: item.color }}
                   >
                     {item.status}
                   </span>
                 </td>
-                <td className="text-[0.85rem] px-4 py-3 border-b border-gray-200 text-right font-bold text-slate-800">
+                <td className="text-[0.85rem] px-4 py-3 border-b border-gray-200 text-right font-bold text-slate-800 whitespace-nowrap">
                   {fmtDollarFull(item.amountRemaining)}
                 </td>
               </tr>
@@ -331,7 +331,7 @@ export default function PipelineData({ refreshTrigger, isActive }: DashboardComp
       `}</style>
 
       {/* HEADER */}
-      <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-gray-200 rounded-t-xl">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-white px-3 md:px-5 py-4 border-b border-gray-200 rounded-t-xl">
         <div className="flex items-center gap-3.5">
           <h2 className="text-xl font-bold text-slate-800">Pipeline Data</h2>
           <span
@@ -355,13 +355,13 @@ export default function PipelineData({ refreshTrigger, isActive }: DashboardComp
       </div>
 
       {/* CONTENT */}
-      <div className="p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
+      <div className="p-3 md:p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
 
         {/* KPI CARDS — 3 cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
           {/* Pipeline Value */}
           <div
-            className={`bg-white rounded-[10px] border border-gray-200 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 ${cardFlash}`}
+            className={`col-span-2 md:col-span-1 bg-white rounded-[10px] border border-gray-200 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 ${cardFlash}`}
             style={{ borderLeft: "4px solid #7c3aed" }}
           >
             <div className="flex items-center justify-between mb-2.5">

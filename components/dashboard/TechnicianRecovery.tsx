@@ -300,9 +300,9 @@ function DetailPanel({
         {FULL_NAMES[techName]} — Weekly Breakdown
       </h3>
       <div className="overflow-x-auto">
-        <table className="w-full text-xs">
+        <table className="w-full min-w-[400px] text-xs">
           <thead>
-            <tr className="border-b-2 border-gray-200 text-left text-[0.55rem] uppercase tracking-wide text-gray-400">
+            <tr className="border-b-2 border-gray-200 text-left text-xs md:text-[0.55rem] uppercase tracking-wide text-gray-400">
               <th className="px-2 py-2">Week</th>
               <th className="px-2 py-2">Actual</th>
               <th className="px-2 py-2">Costed</th>
@@ -481,7 +481,7 @@ export default function TechnicianRecovery({
   return (
     <div className="space-y-4">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 md:px-4 py-2.5">
         <div className="flex items-center gap-3">
           <h2 className="text-xs font-semibold text-gray-900">Technician Recovery</h2>
           <span className="flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-0.5 text-xs md:text-[0.55rem] font-semibold text-green-600">
@@ -571,7 +571,7 @@ export default function TechnicianRecovery({
       <div className="rounded-xl border border-gray-200 bg-white p-2.5 md:p-3 shadow-sm">
         <h3 className="mb-2 text-xs font-semibold text-gray-700">Technician Detail</h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full min-w-[500px] text-xs">
             <thead>
               <tr className="border-b-2 border-gray-200 text-left text-xs md:text-[0.55rem] uppercase tracking-wide text-gray-400">
                 <th className="px-2.5 py-1.5">Technician</th>

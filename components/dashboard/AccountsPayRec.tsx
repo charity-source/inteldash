@@ -324,7 +324,7 @@ function AgingBar({ buckets }: { buckets: AgingBucket[] }) {
         {buckets.map((b) => (
           <div
             key={b.label}
-            className="flex items-center justify-center text-[0.65rem] font-bold text-white"
+            className="flex items-center justify-center text-xs md:text-[0.65rem] font-bold text-white"
             style={{ width: b.pct + "%", background: b.color, minWidth: b.pct > 5 ? undefined : "20px" }}
           >
             {b.pct >= 10 && b.pct + "%"}
@@ -334,7 +334,7 @@ function AgingBar({ buckets }: { buckets: AgingBucket[] }) {
       <div className="flex mt-1.5">
         {buckets.map((b) => (
           <div key={b.label} className="text-center" style={{ width: b.pct + "%" }}>
-            <div className="text-[0.68rem] font-semibold text-slate-500">{b.label}</div>
+            <div className="text-xs md:text-[0.68rem] font-semibold text-slate-500">{b.label}</div>
             <div className="text-[0.72rem] font-bold text-slate-700">{fmtDollarK(b.value)}</div>
           </div>
         ))}
@@ -514,7 +514,7 @@ export default function AccountsPayRec({ refreshTrigger, isActive }: DashboardCo
       `}</style>
 
       {/* COMPONENT HEADER */}
-      <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-gray-200 rounded-t-xl">
+      <div className="flex items-center justify-between flex-wrap gap-2 bg-white px-3 md:px-5 py-4 border-b border-gray-200 rounded-t-xl">
         <div className="flex items-center gap-3.5">
           <h2 className="text-xl font-bold text-slate-800">Accounts Payable / Receivable</h2>
           <span
@@ -527,7 +527,7 @@ export default function AccountsPayRec({ refreshTrigger, isActive }: DashboardCo
       </div>
 
       {/* CONTENT */}
-      <div className="p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
+      <div className="p-3 md:p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
 
         {/* KPI CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -583,19 +583,19 @@ export default function AccountsPayRec({ refreshTrigger, isActive }: DashboardCo
               </div>
 
               {/* Mini Aging Bucket Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 md:gap-2.5 mb-5">
                 {d.arAging.map((bucket) => (
                   <BucketCard key={bucket.label} bucket={bucket} />
                 ))}
               </div>
 
               {/* Top Overdue Debtors Table */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-gray-200 rounded-lg overflow-x-auto">
                 <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-gray-200">
                   <div className="text-[0.82rem] font-bold text-slate-800">Top Overdue Debtors</div>
                   <span className="text-[0.7rem] font-semibold text-slate-400">{d.debtors.length} accounts</span>
                 </div>
-                <table className="w-full border-collapse">
+                <table className="w-full border-collapse min-w-[450px]">
                   <thead>
                     <tr>
                       {["Client", "Amount", "Status"].map((h) => (
@@ -648,19 +648,19 @@ export default function AccountsPayRec({ refreshTrigger, isActive }: DashboardCo
               </div>
 
               {/* Mini Aging Bucket Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 md:gap-2.5 mb-5">
                 {d.apAging.map((bucket) => (
                   <BucketCard key={bucket.label} bucket={bucket} />
                 ))}
               </div>
 
               {/* Top Suppliers Table */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-gray-200 rounded-lg overflow-x-auto">
                 <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-gray-200">
                   <div className="text-[0.82rem] font-bold text-slate-800">Top Suppliers</div>
                   <span className="text-[0.7rem] font-semibold text-slate-400">{d.suppliers.length} accounts</span>
                 </div>
-                <table className="w-full border-collapse">
+                <table className="w-full border-collapse min-w-[450px]">
                   <thead>
                     <tr>
                       {["Supplier", "Amount Due", "Days Until Due"].map((h) => (

@@ -235,7 +235,7 @@ export default function NewWorksVolume({ refreshTrigger, isActive }: DashboardCo
       `}</style>
 
       {/* HEADER */}
-      <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-gray-200 rounded-t-xl">
+      <div className="flex items-center justify-between flex-wrap gap-2 bg-white px-3 md:px-5 py-4 border-b border-gray-200 rounded-t-xl">
         <div className="flex items-center gap-3.5">
           <h2 className="text-xl font-bold text-slate-800">New Works Volume</h2>
           <span
@@ -259,13 +259,13 @@ export default function NewWorksVolume({ refreshTrigger, isActive }: DashboardCo
       </div>
 
       {/* CONTENT */}
-      <div className="p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
+      <div className="p-3 md:p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
 
         {/* KPI CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4">
           {/* Total New Works */}
           <div
-            className={`bg-white rounded-[10px] border border-gray-200 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 ${cardFlash}`}
+            className={`col-span-2 md:col-span-1 bg-white rounded-[10px] border border-gray-200 p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5 ${cardFlash}`}
             style={{ borderLeft: "4px solid #0d9488" }}
           >
             <span className="text-[0.78rem] font-semibold text-slate-500 uppercase tracking-wide">

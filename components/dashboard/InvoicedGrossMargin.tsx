@@ -154,7 +154,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
       `}</style>
 
       {/* HEADER */}
-      <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-gray-200 rounded-t-xl">
+      <div className="flex items-center justify-between flex-wrap gap-2 bg-white px-3 md:px-5 py-4 border-b border-gray-200 rounded-t-xl">
         <div className="flex items-center gap-3.5">
           <h2 className="text-xl font-bold text-slate-800">Invoiced + Gross Margin</h2>
           <span className="text-[0.72rem] font-semibold text-slate-400">{data.period}</span>
@@ -180,7 +180,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
       </div>
 
       {/* CONTENT */}
-      <div className="p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
+      <div className="p-3 md:p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
 
         {/* SUMMARY BANNER */}
         <div
@@ -241,7 +241,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
                   const barW = maxVal > 0 ? (cust.value / maxVal) * 100 : 0;
                   return (
                     <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-b-0">
-                      <span className="text-[0.85rem] font-semibold text-slate-800 w-[160px] truncate" title={cust.name}>{cust.name}</span>
+                      <span className="text-[0.85rem] font-semibold text-slate-800 w-[100px] md:w-[160px] truncate" title={cust.name}>{cust.name}</span>
                       <span className="text-[0.7rem] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded whitespace-nowrap">
                         {cust.invoiceCount} inv
                       </span>
@@ -276,7 +276,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
                   const barW = maxVal > 0 ? (proj.value / maxVal) * 100 : 0;
                   return (
                     <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-b-0">
-                      <span className="text-[0.85rem] font-semibold text-slate-800 w-[160px] truncate" title={proj.name}>{proj.name}</span>
+                      <span className="text-[0.85rem] font-semibold text-slate-800 w-[100px] md:w-[160px] truncate" title={proj.name}>{proj.name}</span>
                       <div className="flex-1 h-[22px] bg-gray-100 rounded overflow-hidden">
                         <div
                           className="h-full rounded bg-emerald-400 transition-all"

@@ -420,7 +420,7 @@ export default function FinanceDashboard({ refreshTrigger, isActive }: Dashboard
       `}</style>
 
       {/* COMPONENT HEADER */}
-      <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-gray-200 rounded-t-xl">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-white px-3 md:px-5 py-4 border-b border-gray-200 rounded-t-xl">
         <div className="flex items-center gap-3.5">
           <h2 className="text-xl font-bold text-slate-800">Finance Dashboard</h2>
           <span className="text-[0.72rem] font-semibold px-2 py-0.5 rounded-full border"
@@ -446,7 +446,7 @@ export default function FinanceDashboard({ refreshTrigger, isActive }: Dashboard
       </div>
 
       {/* CONTENT */}
-      <div className="p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
+      <div className="p-3 md:p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
 
         {/* YTD BANNER */}
         <div className="rounded-[10px] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3"

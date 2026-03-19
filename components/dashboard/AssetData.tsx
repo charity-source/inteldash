@@ -342,7 +342,7 @@ export default function AssetDataDashboard({ refreshTrigger, isActive }: Dashboa
       `}</style>
 
       {/* COMPONENT HEADER */}
-      <div className="flex items-center justify-between bg-white px-5 py-4 border-b border-gray-200 rounded-t-xl">
+      <div className="flex items-center justify-between flex-wrap gap-2 bg-white px-3 md:px-5 py-4 border-b border-gray-200 rounded-t-xl">
         <div className="flex items-center gap-3.5">
           <h2 className="text-xl font-bold text-slate-800">Asset Data</h2>
           <span
@@ -355,12 +355,12 @@ export default function AssetDataDashboard({ refreshTrigger, isActive }: Dashboa
       </div>
 
       {/* CONTENT */}
-      <div className="p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
+      <div className="p-3 md:p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
 
         {/* KPI CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4">
           <KPICard
-            className={cardFlash}
+            className={`col-span-2 md:col-span-1 ${cardFlash}`}
             borderColor="#3b82f6"
             label="Total Assets"
             value={String(d.totalAssets)}
@@ -423,7 +423,7 @@ export default function AssetDataDashboard({ refreshTrigger, isActive }: Dashboa
             <div className="text-[0.92rem] font-bold text-slate-800 mb-4">Maintenance Urgency</div>
 
             {/* Mini cards */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-3 gap-1.5 md:gap-3 mb-4">
               <div className="bg-red-50 rounded-lg p-3 text-center">
                 <div className="text-[0.72rem] font-semibold text-red-500 uppercase tracking-wide">Overdue</div>
                 <div className="text-xl font-extrabold text-red-600">{d.urgency.overdue}</div>
@@ -497,7 +497,7 @@ export default function AssetDataDashboard({ refreshTrigger, isActive }: Dashboa
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse" style={{ minWidth: 920 }}>
+            <table className="w-full border-collapse min-w-[600px]">
               <thead>
                 <tr>
                   {["Asset ID", "Type", "Description", "Assigned To", "Status", "Next Service", "Compliance"].map((h) => (
