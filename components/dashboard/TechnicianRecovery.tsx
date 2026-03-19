@@ -335,11 +335,23 @@ function DetailPanel({
 
 /* ── Main Component ────────────────────────────────────── */
 
+// Temporary override: map email → technician for IDVT testing
+// Remove this once real technician accounts exist
+const IDVT_TEST_OVERRIDES: Record<string, string> = {
+  "charity@excel.claims": "Roja",
+};
+
 // Match session user to a technician short name for IDVT filtering
 function matchUserToTech(userName?: string | null, userEmail?: string | null): string | null {
   if (!userName && !userEmail) return null;
-  const lower = (userName || "").toLowerCase();
   const emailLower = (userEmail || "").toLowerCase();
+
+  // Check test overrides first
+  if (IDVT_TEST_OVERRIDES[emailLower]) {
+    return IDVT_TEST_OVERRIDES[emailLower];
+  }
+
+  const lower = (userName || "").toLowerCase();
   for (const [short, full] of Object.entries(FULL_NAMES)) {
     const fullLower = full.toLowerCase();
     const shortLower = short.toLowerCase();
