@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { simproFetch } from "@/lib/simpro";
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 interface InvoiceListItem {
   ID: number;
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
       },
       grossMargin: marginData,
     });
-    response.headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+    response.headers.set('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
     return response;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
