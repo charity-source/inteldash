@@ -162,7 +162,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
           )}
         </div>
-        <div className="flex bg-gray-100 rounded-lg p-[3px] gap-0.5">
+        <div className="flex flex-wrap bg-gray-100 rounded-lg p-[3px] gap-0.5">
           {(["Month", "Year to Date", "Rolling 12 Months"] as TimePeriod[]).map((p) => (
             <button
               key={p}
@@ -190,7 +190,7 @@ export default function InvoicedGrossMargin({ refreshTrigger, isActive }: Dashbo
           <div className="text-[0.78rem] font-semibold text-slate-400 uppercase tracking-wide">
             {data.period} Summary
           </div>
-          <div className="flex gap-12">
+          <div className="flex flex-wrap gap-4 md:gap-12">
             <SummaryMetric label="Invoices" value={String(data.summary.invoiceCount)} color="#60a5fa" />
             <SummaryMetric label="Total Ex-Tax" value={fmtDollar(data.summary.totalExTax, true)} color="#60a5fa" />
           </div>

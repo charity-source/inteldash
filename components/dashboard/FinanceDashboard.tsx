@@ -428,7 +428,7 @@ export default function FinanceDashboard({ refreshTrigger, isActive }: Dashboard
             Xero Data (Mock)
           </span>
         </div>
-        <div className="flex bg-gray-100 rounded-lg p-[3px] gap-0.5">
+        <div className="flex flex-wrap bg-gray-100 rounded-lg p-[3px] gap-0.5">
           {(["Daily", "Weekly", "Monthly", "YTD"] as TimePeriod[]).map((p) => (
             <button
               key={p}
@@ -449,12 +449,12 @@ export default function FinanceDashboard({ refreshTrigger, isActive }: Dashboard
       <div className="p-6 max-w-[1400px] mx-auto flex flex-col gap-4">
 
         {/* YTD BANNER */}
-        <div className="rounded-[10px] px-6 py-3.5 flex items-center justify-between"
+        <div className="rounded-[10px] px-6 py-3.5 flex flex-wrap items-center justify-between gap-3"
           style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}>
           <div className="text-[0.78rem] font-semibold text-slate-400 uppercase tracking-wide">
             Year-to-Date Summary
           </div>
-          <div className="flex gap-12">
+          <div className="grid grid-cols-2 md:flex gap-4 md:gap-12">
             <YTDMetric label="Revenue" value={fmtDollar(d.ytd.revenue, true)} color="#60a5fa" />
             <YTDMetric label="Expenses" value={fmtDollar(d.ytd.expenses, true)} color="#f87171" />
             <YTDMetric label="Profit" value={fmtDollar(d.ytd.profit, true)} color="#34d399" />

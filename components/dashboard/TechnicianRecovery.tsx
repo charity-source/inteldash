@@ -140,7 +140,7 @@ function BarChartSVG({
   const targetX = padL + (1.0 / maxRate) * chartW;
 
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible" style={{ maxHeight: "120px" }}>
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
       {/* 100% target line */}
       <line
         x1={targetX} y1={padT} x2={targetX} y2={active.length * (barH + 5) + padT}
@@ -216,7 +216,7 @@ function TrendChartSVG({
   const targetY = sy(1.0);
 
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible" style={{ maxHeight: "180px" }}>
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
       {/* Grid lines */}
       {gridLines.map((v) => (
         <g key={v}>
@@ -275,12 +275,12 @@ function SummaryCard({
   color?: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">
-      <div className="text-[0.6rem] uppercase tracking-wide text-gray-400">{label}</div>
+    <div className="rounded-xl border border-gray-200 bg-white p-2 md:p-2.5 shadow-sm">
+      <div className="text-xs md:text-[0.6rem] uppercase tracking-wide text-gray-400">{label}</div>
       <div className="mt-0.5 text-sm font-bold" style={{ color: color || "#1f2937" }}>
         {value}
       </div>
-      {sub && <div className="mt-0.5 text-[0.6rem] text-gray-400">{sub}</div>}
+      {sub && <div className="mt-0.5 text-xs md:text-[0.6rem] text-gray-400">{sub}</div>}
     </div>
   );
 }
@@ -484,13 +484,13 @@ export default function TechnicianRecovery({
       <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-2.5">
         <div className="flex items-center gap-3">
           <h2 className="text-xs font-semibold text-gray-900">Technician Recovery</h2>
-          <span className="flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-0.5 text-[0.55rem] font-semibold text-green-600">
+          <span className="flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-0.5 text-xs md:text-[0.55rem] font-semibold text-green-600">
             <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
             Live
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[0.55rem] text-gray-400">
+          <span className="text-xs md:text-[0.55rem] text-gray-400">
             {data.lastUpdated
               ? "Updated: " + new Date(data.lastUpdated).toLocaleTimeString()
               : "—"}
@@ -498,7 +498,7 @@ export default function TechnicianRecovery({
           <button
             onClick={fetchData}
             disabled={loading}
-            className="rounded-lg border border-gray-200 px-2.5 py-1 text-[0.6rem] font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+            className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs md:text-[0.6rem] font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
           >
             <RefreshCw className={`inline h-3 w-3 ${loading ? "animate-spin" : ""}`} />{" "}
             Refresh
@@ -507,8 +507,8 @@ export default function TechnicianRecovery({
       </div>
 
       {/* ── Top cards: Gauge + 4 summary cards ── */}
-      <div className="grid grid-cols-5 gap-3">
-        <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
+        <div className="col-span-2 md:col-span-1 flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
           <GaugeSVG rate={groupRate} />
         </div>
         <SummaryCard label="Total Actual Cost" value={fmtDollar(totalActual)} sub="Latest week payroll" />
@@ -528,7 +528,7 @@ export default function TechnicianRecovery({
       </div>
 
       {/* ── Bar chart: latest week recovery per tech ── */}
-      <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-2.5 md:p-3 shadow-sm">
         <h3 className="mb-2 text-xs font-semibold text-gray-700">
           Recovery Rate by Technician — {latest.weekEnding}
         </h3>
@@ -538,7 +538,7 @@ export default function TechnicianRecovery({
       </div>
 
       {/* ── Group trend ── */}
-      <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-2.5 md:p-3 shadow-sm">
         <h3 className="mb-2 text-xs font-semibold text-gray-700">
           {isIDVT && myTechName ? `${FULL_NAMES[myTechName]} Recovery Trend` : "Group Recovery Trend"}
         </h3>
@@ -568,12 +568,12 @@ export default function TechnicianRecovery({
       )}
 
       {/* ── Detail table ── */}
-      <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-2.5 md:p-3 shadow-sm">
         <h3 className="mb-2 text-xs font-semibold text-gray-700">Technician Detail</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b-2 border-gray-200 text-left text-[0.55rem] uppercase tracking-wide text-gray-400">
+              <tr className="border-b-2 border-gray-200 text-left text-xs md:text-[0.55rem] uppercase tracking-wide text-gray-400">
                 <th className="px-2.5 py-1.5">Technician</th>
                 <th className="px-2.5 py-1.5">Recovery %</th>
                 <th className="px-2.5 py-1.5">Actual Cost</th>
@@ -609,7 +609,7 @@ export default function TechnicianRecovery({
                     <td className="px-2.5 py-2 text-gray-600">{actual}</td>
                     <td className="px-2.5 py-2 text-gray-600">{costed}</td>
                     <td className="px-2.5 py-2">
-                      <span className={`inline-block rounded-full px-1.5 py-0.5 text-[0.55rem] font-semibold ${rateBg(rate)}`}>
+                      <span className={`inline-block rounded-full px-1.5 py-0.5 text-xs md:text-[0.55rem] font-semibold ${rateBg(rate)}`}>
                         {statusLabel(rate)}
                       </span>
                     </td>
