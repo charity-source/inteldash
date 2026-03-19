@@ -1,6 +1,6 @@
 {
   "users": [
-    {"name": "Charity Salposial", "email": "charity@excel.claims", "role": "IDV0", "status": "Active"},
+    {"name": "Charity Salposial", "email": "charity@excel.claims", "role": "IDV1", "status": "Active"},
     {"name": "Sonny Saini", "email": "sonny@excel.claims", "role": "IDV0", "status": "Active"}
   ]
 }
