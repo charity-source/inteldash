@@ -2,7 +2,9 @@
 
 import { DashboardComponentProps } from "@/types";
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { RefreshCw, AlertCircle } from "lucide-react";
+import type { DashboardRole } from "@/config/viewConfig";
 
 /* ── Types ─────────────────────────────────────────────── */
 
@@ -115,11 +117,14 @@ function GaugeSVG({ rate }: { rate: number | null }) {
 function BarChartSVG({
   weekData,
   onSelect,
+  filterTechs,
 }: {
   weekData: SummaryWeek;
   onSelect: (name: string) => void;
+  filterTechs?: readonly string[];
 }) {
-  const active = TECHS.filter(
+  const techList = filterTechs || TECHS;
+  const active = techList.filter(
     (t) => weekData.technicians[t] !== null && weekData.technicians[t]! > 0
   );
   if (active.length === 0) {
@@ -330,14 +335,42 @@ function DetailPanel({
 
 /* ── Main Component ────────────────────────────────────── */
 
+// Match session user to a technician short name for IDVT filtering
+function matchUserToTech(userName?: string | null, userEmail?: string | null): string | null {
+  if (!userName && !userEmail) return null;
+  const lower = (userName || "").toLowerCase();
+  const emailLower = (userEmail || "").toLowerCase();
+  for (const [short, full] of Object.entries(FULL_NAMES)) {
+    const fullLower = full.toLowerCase();
+    const shortLower = short.toLowerCase();
+    // Match by full name, first name, or email containing the name
+    if (
+      lower === fullLower ||
+      lower.startsWith(shortLower) ||
+      fullLower.startsWith(lower) ||
+      emailLower.includes(shortLower)
+    ) {
+      return short;
+    }
+  }
+  return null;
+}
+
 export default function TechnicianRecovery({
   refreshTrigger,
   isActive,
 }: DashboardComponentProps) {
+  const { data: session } = useSession();
   const [data, setData] = useState<TechData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTech, setSelectedTech] = useState<string | null>(null);
+
+  const role = session?.user?.role as DashboardRole | undefined;
+  const isIDVT = role === "IDVT";
+  const myTechName = isIDVT
+    ? matchUserToTech(session?.user?.name, session?.user?.email)
+    : null;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -399,17 +432,39 @@ export default function TechnicianRecovery({
 
   if (!data) return null;
 
+  // IDVT: must match to a technician or show error
+  if (isIDVT && !myTechName) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
+        <AlertCircle className="mx-auto mb-2 h-8 w-8 text-gray-400" />
+        <p className="text-sm font-medium text-gray-700">No data found for your account.</p>
+        <p className="mt-1 text-xs text-gray-500">Contact your administrator.</p>
+      </div>
+    );
+  }
+
   /* ── Derived data ── */
   const s = data.summary;
   const latest = s[s.length - 1];
   const latestDetail = data.weeklyDetails?.[0] ?? null;
 
-  const activeTechs = TECHS.filter(
+  // For IDVT, filter to just the matched technician
+  const visibleTechs: readonly string[] = isIDVT && myTechName
+    ? [myTechName]
+    : TECHS;
+
+  const activeTechs = visibleTechs.filter(
     (t) => latest.technicians[t] !== null && latest.technicians[t]! > 0
   );
-  const groupRate = latest.groupRate;
-  const totalActual = latestDetail?.group?.actual ?? 0;
-  const totalCosted = latestDetail?.group?.costed ?? 0;
+  const groupRate = isIDVT && myTechName
+    ? latest.technicians[myTechName] ?? null
+    : latest.groupRate;
+  const totalActual = isIDVT && myTechName && latestDetail
+    ? latestDetail.technicians.find((d) => d.name.toLowerCase().startsWith(myTechName.toLowerCase()))?.actual ?? 0
+    : latestDetail?.group?.actual ?? 0;
+  const totalCosted = isIDVT && myTechName && latestDetail
+    ? latestDetail.technicians.find((d) => d.name.toLowerCase().startsWith(myTechName.toLowerCase()))?.costed ?? 0
+    : latestDetail?.group?.costed ?? 0;
 
   return (
     <div className="space-y-4">
@@ -453,9 +508,10 @@ export default function TechnicianRecovery({
           color={rateColor(groupRate)}
         />
         <SummaryCard
-          label="Active Technicians"
-          value={`${activeTechs.length} / ${TECHS.length}`}
-          sub={activeTechs.join(", ")}
+          label={isIDVT ? "Your Status" : "Active Technicians"}
+          value={isIDVT ? statusLabel(groupRate) : `${activeTechs.length} / ${TECHS.length}`}
+          sub={isIDVT && myTechName ? FULL_NAMES[myTechName] : activeTechs.join(", ")}
+          color={isIDVT ? rateColor(groupRate) : undefined}
         />
       </div>
 
@@ -465,15 +521,17 @@ export default function TechnicianRecovery({
           Recovery Rate by Technician — {latest.weekEnding}
         </h3>
         <div className="overflow-x-auto">
-          <BarChartSVG weekData={latest} onSelect={setSelectedTech} />
+          <BarChartSVG weekData={latest} onSelect={setSelectedTech} filterTechs={visibleTechs} />
         </div>
       </div>
 
       {/* ── Group trend ── */}
       <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-        <h3 className="mb-2 text-xs font-semibold text-gray-700">Group Recovery Trend</h3>
+        <h3 className="mb-2 text-xs font-semibold text-gray-700">
+          {isIDVT && myTechName ? `${FULL_NAMES[myTechName]} Recovery Trend` : "Group Recovery Trend"}
+        </h3>
         <div className="overflow-x-auto">
-          <TrendChartSVG summary={s} dataKey="groupRate" />
+          <TrendChartSVG summary={s} dataKey={isIDVT && myTechName ? myTechName : "groupRate"} />
         </div>
       </div>
 
@@ -512,7 +570,7 @@ export default function TechnicianRecovery({
               </tr>
             </thead>
             <tbody>
-              {TECHS.map((t) => {
+              {visibleTechs.map((t) => {
                 const rate = latest.technicians[t];
                 let actual = "—", costed = "—";
                 if (latestDetail) {

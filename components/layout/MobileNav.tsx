@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { X } from "lucide-react";
-import { tabs } from "./TabNavigation";
+import { getVisibleTabs } from "./TabNavigation";
+import type { DashboardRole } from "@/config/viewConfig";
 
 interface MobileNavProps {
   isOpen: boolean;
@@ -12,6 +14,9 @@ interface MobileNavProps {
 
 export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const role = session?.user?.role as DashboardRole | undefined;
+  const tabs = getVisibleTabs(role);
 
   if (!isOpen) return null;
 

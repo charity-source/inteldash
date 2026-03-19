@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import allowlistData from "@/data/allowlist.json";
+import { isValidRole, type DashboardRole } from "@/config/viewConfig";
 
 // Shared authOptions — reads env vars at call time, not module load time
 export const authOptions: NextAuthOptions = {
@@ -31,11 +32,35 @@ export const authOptions: NextAuthOptions = {
           return "/login?error=NotAuthorised";
         }
 
+        // Check 3: Must have a valid role
+        if (!isValidRole(allowedUser.role)) {
+          return "/login?error=NotAuthorised";
+        }
+
         return true;
       }
       return true;
     },
-    async session({ session }) {
+
+    async jwt({ token, profile }) {
+      // On initial sign-in, attach role from allowlist
+      if (profile?.email) {
+        const email = profile.email.toLowerCase();
+        const allowedUser = allowlistData.users.find(
+          (u) => u.email.toLowerCase() === email && u.status === "Active"
+        );
+        if (allowedUser && isValidRole(allowedUser.role)) {
+          token.role = allowedUser.role as DashboardRole;
+        }
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      // Expose role on the session object
+      if (token.role) {
+        session.user.role = token.role as DashboardRole;
+      }
       return session;
     },
   },

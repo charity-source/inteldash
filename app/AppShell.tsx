@@ -6,22 +6,46 @@ import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import TabNavigation from "@/components/layout/TabNavigation";
 import MobileNav from "@/components/layout/MobileNav";
+import { getTabsForRole, type DashboardRole } from "@/config/viewConfig";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isLoginPage = pathname === "/login" || pathname === "/terms" || pathname === "/privacy";
   const isDev = process.env.NODE_ENV === "development";
+  const role = session?.user?.role as DashboardRole | undefined;
 
+  // Redirect unauthenticated users to login
   useEffect(() => {
     if (!isDev && status === "unauthenticated" && !isLoginPage) {
       router.push("/login");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, isLoginPage, router]);
+
+  // Redirect to first permitted tab if current route is not allowed
+  useEffect(() => {
+    if (isDev || isLoginPage || status !== "authenticated" || !role) return;
+
+    const allowedTabs = getTabsForRole(role);
+    const allowedHrefs = allowedTabs.map((t) => t.href);
+    const defaultHref = allowedHrefs[0] || "/login";
+
+    // Redirect root to first permitted tab
+    if (pathname === "/") {
+      router.replace(defaultHref);
+      return;
+    }
+
+    // Redirect if current path is not in permitted tabs
+    if (!allowedHrefs.includes(pathname)) {
+      router.replace(defaultHref);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, role, pathname, router, isLoginPage]);
 
   if (isLoginPage) {
     return <>{children}</>;

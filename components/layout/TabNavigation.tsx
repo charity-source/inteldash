@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   DollarSign,
   TrendingUp,
@@ -11,8 +12,27 @@ import {
   Wrench,
   Truck,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { getTabsForRole, type DashboardRole } from "@/config/viewConfig";
 
-const tabs = [
+interface Tab {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+const TAB_ICONS: Record<string, LucideIcon> = {
+  "/finance": DollarSign,
+  "/pipeline": TrendingUp,
+  "/invoiced": FileText,
+  "/accounts": CreditCard,
+  "/new-works": Briefcase,
+  "/technician": Wrench,
+  "/assets": Truck,
+};
+
+// All tabs — used as fallback in dev mode
+const allTabs: Tab[] = [
   { label: "Finance Dashboard", href: "/finance", icon: DollarSign },
   { label: "Pipeline Data", href: "/pipeline", icon: TrendingUp },
   { label: "Invoiced + Gross Margin", href: "/invoiced", icon: FileText },
@@ -22,8 +42,21 @@ const tabs = [
   { label: "Asset Data", href: "/assets", icon: Truck },
 ];
 
+function getVisibleTabs(role?: DashboardRole): Tab[] {
+  if (!role) return allTabs; // dev fallback
+  const roleTabs = getTabsForRole(role);
+  return roleTabs.map((t) => ({
+    label: t.label,
+    href: t.href,
+    icon: TAB_ICONS[t.href] || Briefcase,
+  }));
+}
+
 export default function TabNavigation() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const role = session?.user?.role as DashboardRole | undefined;
+  const tabs = getVisibleTabs(role);
 
   return (
     <nav className="hidden border-b border-gray-200 bg-white md:block">
@@ -51,4 +84,4 @@ export default function TabNavigation() {
   );
 }
 
-export { tabs };
+export { allTabs as tabs, getVisibleTabs };
