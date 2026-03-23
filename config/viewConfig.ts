@@ -16,6 +16,7 @@ export const ALL_TABS: TabConfig[] = [
   { id: "new-works", label: "New Works Volume", href: "/new-works" },
   { id: "technician", label: "Technician Recovery", href: "/technician" },
   { id: "assets", label: "Asset Data", href: "/assets" },
+  { id: "ops-kpis", label: "Operations Management KPIs", href: "/ops-kpis" },
 ];
 
 export const ROLE_TABS: Record<DashboardRole, string[]> = {
@@ -27,6 +28,7 @@ export const ROLE_TABS: Record<DashboardRole, string[]> = {
     "new-works",
     "technician",
     "assets",
+    "ops-kpis",
   ],
   IDV1: ["pipeline", "new-works", "assets"],
   IDVT: ["technician"],
