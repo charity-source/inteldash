@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import allowlistData from "@/data/allowlist.json";
+import { getUserByEmail } from "@/lib/notion-allowlist";
 import { isValidRole, type DashboardRole } from "@/config/viewConfig";
 
 // Shared authOptions — reads env vars at call time, not module load time
@@ -24,10 +24,9 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // Check 2: Allowlist — email must be in the list with Active status
-        const allowedUser = allowlistData.users.find(
-          (u) => u.email.toLowerCase() === email && u.status === "Active"
-        );
+        // Check 2: Allowlist — email must be Active in Notion database
+        if (!email) return "/login?error=NotAuthorised";
+        const allowedUser = await getUserByEmail(email);
         if (!allowedUser) {
           return "/login?error=NotAuthorised";
         }
@@ -43,12 +42,10 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, profile }) {
-      // On initial sign-in, attach role from allowlist
+      // On initial sign-in, attach role from Notion allowlist
       if (profile?.email) {
         const email = profile.email.toLowerCase();
-        const allowedUser = allowlistData.users.find(
-          (u) => u.email.toLowerCase() === email && u.status === "Active"
-        );
+        const allowedUser = await getUserByEmail(email);
         if (allowedUser && isValidRole(allowedUser.role)) {
           token.role = allowedUser.role as DashboardRole;
         }
